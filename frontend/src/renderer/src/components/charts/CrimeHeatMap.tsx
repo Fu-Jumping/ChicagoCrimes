@@ -55,7 +55,7 @@ const HeatLayer = ({ data }: { data: HeatMapProps['heatData'] }) => {
 const CrimeHeatMap: React.FC<HeatMapProps> = ({ heatData, districtData, onDistrictClick }) => {
   const center: [number, number] = [41.8781, -87.6298] // Chicago
   
-  const getDistrictStyle = (feature: any) => {
+  const getDistrictStyle = () => {
     return {
       fillColor: 'transparent',
       weight: 2,
@@ -81,7 +81,7 @@ const CrimeHeatMap: React.FC<HeatMapProps> = ({ heatData, districtData, onDistri
       },
       mouseout: (e) => {
         const target = e.target
-        target.setStyle(getDistrictStyle(feature))
+        target.setStyle(getDistrictStyle())
       },
       click: () => {
         if (onDistrictClick) onDistrictClick(districtNum)

@@ -14,18 +14,14 @@ const TimelinePlayer: React.FC<TimelinePlayerProps> = ({ currentMonth, onChange 
     let timer: number
     if (isPlaying) {
       timer = window.setInterval(() => {
-        onChange((prev) => {
-          if (prev === null) return 1
-          if (prev >= 12) {
+        onChange(currentMonth === null ? 1 : currentMonth >= 12 ? null : currentMonth + 1)
+        if (currentMonth !== null && currentMonth >= 12) {
             setIsPlaying(false)
-            return null // reset
-          }
-          return prev + 1
-        })
+        }
       }, 1500) // 1.5s per month
     }
     return () => clearInterval(timer)
-  }, [isPlaying, onChange])
+  }, [isPlaying, onChange, currentMonth])
 
   const togglePlay = () => setIsPlaying(!isPlaying)
 
