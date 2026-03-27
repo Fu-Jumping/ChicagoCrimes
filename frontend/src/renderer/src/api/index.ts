@@ -1,4 +1,10 @@
 import axios from 'axios'
+import {
+  createMemoryHitTiming,
+  createRequestTraceMeta,
+  finalizeRequestTiming,
+  type RequestTraceMeta
+} from '../utils/requestTiming'
 
 export interface ApiErrorDetail {
   field: string
@@ -43,7 +49,7 @@ export interface NormalizedApiError {
   retryAttempt?: number
 }
 
-export type ApiCacheStatus = 'HIT' | 'MISS' | 'NONE'
+export type ApiCacheStatus = 'HIT' | 'MISS' | 'NONE' | 'MEMORY_HIT'
 
 export interface RequestHistoryEntry {
   id: string
@@ -61,44 +67,40 @@ export interface RequestHistoryEntry {
   params?: Record<string, unknown>
 }
 
-const normalizeError = (error: unknown): NormalizedApiError => {
-  if (axios.isAxiosError(error)) {
-    const status = error.response?.status ?? 500
-    const payload = error.response?.data as
-      | {
-          code?: string
-          message?: string
-          error_type?: string
-          request_id?: string
-          details?: ApiErrorDetail[]
-        }
-      | undefined
-    return {
-      status,
-      code: payload?.code ?? 'UNKNOWN_ERROR',
-      message: payload?.message ?? error.message ?? '请求失败',
-      errorType: payload?.error_type ?? 'network_error',
-      requestId: payload?.request_id,
-      details: payload?.details ?? [],
-      retryAttempt: Number(
-        (error.config as Record<string, unknown> | undefined)?.__retryAttempt ?? 0
-      )
-    }
-  }
-  return {
-    status: 500,
-    code: 'UNKNOWN_ERROR',
-    message: '请求失败',
-    errorType: 'unknown_error',
-    details: [],
-    retryAttempt: 0
-  }
+export interface FilterOptionsResponse {
+  months: number[]
+  beats: string[]
+  wards: number[]
+  community_areas: number[]
+  domestic_values?: boolean[]
 }
 
-interface RequestTraceMeta {
-  id: string
-  startedAt: number
+export interface WarmupProgressSnapshot {
+  completed: number
+  total: number
+  key: string
+  label: string
 }
+
+interface MemoryCacheEntry {
+  expiresAt: number
+  response: ApiResponse<unknown>
+}
+
+interface GeoAnalyticsParams {
+  [key: string]: boolean | number | string | undefined
+  year?: number
+  month?: number
+  primary_type?: string
+  district?: number
+  arrest?: boolean
+  beat?: string
+  ward?: number
+  community_area?: number
+  domestic?: boolean
+}
+
+type RequestHistoryListener = () => void
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -112,19 +114,59 @@ declare module 'axios' {
   }
 }
 
-type RequestHistoryListener = () => void
-
 const requestHistory: RequestHistoryEntry[] = []
 const requestHistoryListeners = new Set<RequestHistoryListener>()
 const requestHistoryLimit = 50
+const responseMemoryCache = new Map<string, MemoryCacheEntry>()
+const inFlightRequests = new Map<string, Promise<ApiResponse<unknown>>>()
+const MEMORY_CACHE_TTL_MS = 5 * 60 * 1000
+
+const normalizeError = (error: unknown): NormalizedApiError => {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status ?? 500
+    const payload = error.response?.data as
+      | {
+          code?: string
+          message?: string
+          error_type?: string
+          request_id?: string
+          details?: ApiErrorDetail[]
+        }
+      | undefined
+
+    return {
+      status,
+      code: payload?.code ?? 'UNKNOWN_ERROR',
+      message: payload?.message ?? error.message ?? '请求失败',
+      errorType: payload?.error_type ?? 'network_error',
+      requestId: payload?.request_id,
+      details: payload?.details ?? [],
+      retryAttempt: Number(
+        (error.config as Record<string, unknown> | undefined)?.__retryAttempt ?? 0
+      )
+    }
+  }
+
+  return {
+    status: 500,
+    code: 'UNKNOWN_ERROR',
+    message: '请求失败',
+    errorType: 'unknown_error',
+    details: [],
+    retryAttempt: 0
+  }
+}
 
 const emitHistoryChanged = (): void => {
   requestHistoryListeners.forEach((listener) => listener())
 }
 
 const getCacheStatus = (value?: string): ApiCacheStatus => {
-  if (value === 'HIT' || value === 'MISS') {
-    return value
+  if (value && value.includes('HIT')) {
+    return 'HIT'
+  }
+  if (value && value.includes('MISS')) {
+    return 'MISS'
   }
   return 'NONE'
 }
@@ -133,10 +175,12 @@ const getRequestIdFromPayload = (data: unknown): string | undefined => {
   if (!data || typeof data !== 'object') {
     return undefined
   }
+
   const requestId = (data as Record<string, unknown>).request_id
   if (typeof requestId === 'string' && requestId.trim().length > 0) {
     return requestId
   }
+
   return undefined
 }
 
@@ -153,11 +197,81 @@ const appendRequestHistory = (entry: RequestHistoryEntry): void => {
   emitHistoryChanged()
 }
 
+const buildRequestKey = (url: string, params?: Record<string, unknown>): string => {
+  if (!params) {
+    return url
+  }
+
+  const searchParams = new URLSearchParams()
+  Object.keys(params)
+    .sort()
+    .forEach((key) => {
+      const value = params[key]
+      if (value === null || value === undefined) {
+        return
+      }
+      if (Array.isArray(value)) {
+        value.forEach((item) => searchParams.append(key, String(item)))
+        return
+      }
+      searchParams.append(key, String(value))
+    })
+
+  const query = searchParams.toString()
+  return query ? `${url}?${query}` : url
+}
+
+const cloneResponse = <T>(response: ApiResponse<T>): ApiResponse<T> => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(response)
+  }
+  return JSON.parse(JSON.stringify(response)) as ApiResponse<T>
+}
+
+const readMemoryCache = <T>(key: string): ApiResponse<T> | null => {
+  const cached = responseMemoryCache.get(key)
+  if (!cached) {
+    return null
+  }
+  if (cached.expiresAt <= Date.now()) {
+    responseMemoryCache.delete(key)
+    return null
+  }
+  return cloneResponse(cached.response as ApiResponse<T>)
+}
+
+const appendMemoryHitHistory = <T>(
+  url: string,
+  params: Record<string, unknown> | undefined,
+  response: ApiResponse<T>
+): void => {
+  const timing = createMemoryHitTiming()
+  appendRequestHistory({
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    method: 'GET',
+    url,
+    startedAt: timing.startedAt,
+    endedAt: timing.endedAt,
+    durationMs: timing.durationMs,
+    status: 200,
+    success: true,
+    cacheStatus: 'MEMORY_HIT',
+    requestId: response.request_id,
+    retryAttempt: 0,
+    params
+  })
+}
+
 export const getRequestHistory = (): RequestHistoryEntry[] => [...requestHistory]
 
 export const clearRequestHistory = (): void => {
   requestHistory.length = 0
   emitHistoryChanged()
+}
+
+export const clearApiMemoryCache = (): void => {
+  responseMemoryCache.clear()
+  inFlightRequests.clear()
 }
 
 export const subscribeRequestHistory = (listener: RequestHistoryListener): (() => void) => {
@@ -169,33 +283,29 @@ export const subscribeRequestHistory = (listener: RequestHistoryListener): (() =
 
 const api = axios.create({
   baseURL: 'http://localhost:8000/api/v1',
-  timeout: 10000
+  timeout: 60000
 })
 
 api.interceptors.request.use((config) => {
-  const traceMeta: RequestTraceMeta = {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    startedAt: performance.now()
-  }
+  const traceMeta = createRequestTraceMeta(`${Date.now()}-${Math.random().toString(16).slice(2)}`)
   config.__traceMeta = traceMeta
   return config
 })
 
-// Response interceptor for generic error handling
 api.interceptors.response.use(
   (response) => {
     const traceMeta = response.config.__traceMeta
     const retryAttempt = Number(response.config.__retryAttempt ?? 0)
-    const startedAt = traceMeta?.startedAt ?? performance.now()
-    const endedAt = performance.now()
+    const timing = finalizeRequestTiming(traceMeta)
     const requestId = getRequestIdFromPayload(response.data) ?? response.headers['x-request-id']
+
     appendRequestHistory({
       id: traceMeta?.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       method: String(response.config.method ?? 'GET').toUpperCase(),
       url: String(response.config.url ?? ''),
-      startedAt,
-      endedAt,
-      durationMs: endedAt - startedAt,
+      startedAt: timing.startedAt,
+      endedAt: timing.endedAt,
+      durationMs: timing.durationMs,
       status: response.status,
       success: true,
       cacheStatus: getCacheStatus(response.headers['x-cache']),
@@ -206,22 +316,24 @@ api.interceptors.response.use(
           ? (response.config.params as Record<string, unknown>)
           : undefined
     })
+
     return response.data
   },
   (error) => {
     const normalizedError = normalizeError(error)
+
     if (axios.isAxiosError(error)) {
       const traceMeta = error.config?.__traceMeta
       const retryAttempt = Number(error.config?.__retryAttempt ?? 0)
-      const startedAt = traceMeta?.startedAt ?? performance.now()
-      const endedAt = performance.now()
+      const timing = finalizeRequestTiming(traceMeta)
+
       appendRequestHistory({
         id: traceMeta?.id ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         method: String(error.config?.method ?? 'GET').toUpperCase(),
         url: String(error.config?.url ?? ''),
-        startedAt,
-        endedAt,
-        durationMs: endedAt - startedAt,
+        startedAt: timing.startedAt,
+        endedAt: timing.endedAt,
+        durationMs: timing.durationMs,
         status: normalizedError.status,
         success: false,
         cacheStatus: getCacheStatus(error.response?.headers?.['x-cache']),
@@ -234,6 +346,7 @@ api.interceptors.response.use(
             : undefined
       })
     }
+
     return Promise.reject(normalizedError)
   }
 )
@@ -250,30 +363,67 @@ const get = async <T>(
   params?: Record<string, unknown>,
   maxRetries = 1
 ): Promise<ApiResponse<T>> => {
-  let attempt = 0
-  while (attempt <= maxRetries) {
-    try {
-      const response = await api.get<ApiResponse<T>>(url, {
-        params,
-        __retryAttempt: attempt
-      })
-      return response as unknown as ApiResponse<T>
-    } catch (error) {
-      const normalizedError = error as NormalizedApiError
-      if (attempt >= maxRetries || !shouldRetry(normalizedError)) {
-        throw normalizedError
-      }
-      attempt += 1
-    }
+  const requestKey = buildRequestKey(url, params)
+  const cached = readMemoryCache<T>(requestKey)
+  if (cached) {
+    appendMemoryHitHistory(url, params, cached)
+    return cached
   }
-  throw {
-    status: 500,
-    code: 'UNKNOWN_ERROR',
-    message: '请求失败',
-    errorType: 'unknown_error',
-    details: [],
-    retryAttempt: maxRetries
-  } as NormalizedApiError
+
+  const inFlight = inFlightRequests.get(requestKey)
+  if (inFlight) {
+    return (await inFlight) as ApiResponse<T>
+  }
+
+  const requestPromise = (async (): Promise<ApiResponse<T>> => {
+    let attempt = 0
+    while (attempt <= maxRetries) {
+      try {
+        const response = await api.get<ApiResponse<T>>(url, {
+          params,
+          __retryAttempt: attempt
+        })
+        const normalizedResponse = response as unknown as ApiResponse<T>
+        responseMemoryCache.set(requestKey, {
+          expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
+          response: cloneResponse(normalizedResponse)
+        })
+        return normalizedResponse
+      } catch (error) {
+        const normalizedError = error as NormalizedApiError
+        if (attempt >= maxRetries || !shouldRetry(normalizedError)) {
+          throw normalizedError
+        }
+        attempt += 1
+      }
+    }
+
+    throw {
+      status: 500,
+      code: 'UNKNOWN_ERROR',
+      message: '请求失败',
+      errorType: 'unknown_error',
+      details: [],
+      retryAttempt: maxRetries
+    } as NormalizedApiError
+  })()
+
+  inFlightRequests.set(requestKey, requestPromise as Promise<ApiResponse<unknown>>)
+
+  try {
+    return await requestPromise
+  } finally {
+    inFlightRequests.delete(requestKey)
+  }
+}
+
+const getData = async <T>(
+  url: string,
+  params?: Record<string, unknown>,
+  maxRetries = 1
+): Promise<T> => {
+  const response = await get<T>(url, params, maxRetries)
+  return response.data
 }
 
 export const analyticsApi = {
@@ -297,12 +447,88 @@ export const analyticsApi = {
     get<Record<string, unknown>[]>('/analytics/trend/monthly', params),
   getTypesArrestRate: (params?: Record<string, unknown>) =>
     get<Record<string, unknown>[]>('/analytics/types/arrest_rate', params),
+  getFilterOptions: (params?: Record<string, unknown>) =>
+    get<FilterOptionsResponse>('/analytics/filters/options', params),
+  getGeoHeatmap: (params?: GeoAnalyticsParams): Promise<{ lat: number; lng: number; count: number }[]> =>
+    getData<{ lat: number; lng: number; count: number }[]>('/analytics/geo/heatmap', params),
+  getGeoDistricts: (
+    params?: GeoAnalyticsParams
+  ): Promise<{ district: string; count: number }[]> =>
+    getData<{ district: string; count: number }[]>('/analytics/geo/districts', params),
+  warmupAppData: async (
+    onProgress?: (snapshot: WarmupProgressSnapshot) => void
+  ): Promise<void> => {
+    const stages: Array<{ key: string; label: string; run: () => Promise<unknown> }> = [
+      {
+        key: 'overview',
+        label: '预加载总览与筛选器',
+        run: () =>
+          Promise.allSettled([
+            analyticsApi.getFilterOptions(),
+            analyticsApi.getYearlyTrend(),
+            analyticsApi.getTypesProportion({ limit: 5 }),
+            analyticsApi.getDistrictsComparison({ limit: 10 })
+          ])
+      },
+      {
+        key: 'trend',
+        label: '预加载趋势分析图表',
+        run: () =>
+          Promise.allSettled([
+            analyticsApi.getMonthlyTrend({ year: 2023 }),
+            analyticsApi.getWeeklyTrend(),
+            analyticsApi.getHourlyTrend()
+          ])
+      },
+      {
+        key: 'type',
+        label: '预加载类型与逮捕分析',
+        run: () =>
+          Promise.allSettled([
+            analyticsApi.getDomesticProportion(),
+            analyticsApi.getTypesArrestRate({ limit: 10 }),
+            analyticsApi.getTypesProportion({ limit: 20 })
+          ])
+      },
+      {
+        key: 'district',
+        label: '预加载区域与地点分析',
+        run: () =>
+          Promise.allSettled([
+            analyticsApi.getDistrictsComparison({ limit: 20 }),
+            analyticsApi.getLocationTypes({ limit: 15 })
+          ])
+      },
+      {
+        key: 'map',
+        label: '预加载地图热力与分区数据',
+        run: () => Promise.allSettled([analyticsApi.getGeoHeatmap(), analyticsApi.getGeoDistricts()])
+      }
+    ]
 
-  getGeoHeatmap: (params?: { year?: number; month?: number }) =>
-    api.get('/analytics/geo/heatmap', { params }).then((res: any) => res.data),
+    for (let index = 0; index < stages.length; index += 1) {
+      const stage = stages[index]
+      if (!stage) {
+        continue
+      }
 
-  getGeoDistricts: (params?: { year?: number; month?: number }) =>
-    api.get('/analytics/geo/districts', { params }).then((res: any) => res.data)
+      onProgress?.({
+        completed: index,
+        total: stages.length,
+        key: stage.key,
+        label: stage.label
+      })
+
+      await stage.run()
+    }
+
+    onProgress?.({
+      completed: stages.length,
+      total: stages.length,
+      key: 'done',
+      label: '预加载完成'
+    })
+  }
 }
 
 export default api

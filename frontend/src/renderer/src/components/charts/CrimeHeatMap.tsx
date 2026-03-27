@@ -1,16 +1,22 @@
-import React, { useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
+import React, { useEffect, useMemo, useRef } from 'react'
+import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 import chicagoDistricts from '../../assets/chicago-districts.json'
+import { hasMeaningfulDistrictBoundaries } from '../../utils/districtBoundaries'
+import {
+  buildHeatmapLayerModel,
+  buildRelativeIntensityNormalizer
+} from '../../utils/heatmapIntensity'
+import { getMapTheme } from '../../utils/mapTheme'
+import { useThemeMode } from '../../hooks/useThemeMode'
 
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
-// Fix Leaflet icon issue in React
-delete (L.Icon.Default.prototype as any)._getIconUrl
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
@@ -23,85 +29,137 @@ interface HeatMapProps {
   onDistrictClick?: (district: string) => void
 }
 
-const HeatLayer = ({ data }: { data: HeatMapProps['heatData'] }) => {
+const HeatLayer = ({ data }: { data: HeatMapProps['heatData'] }): null => {
   const map = useMap()
-  const layerRef = useRef<any>(null)
+  const layerRef = useRef<L.Layer | null>(null)
+  const { theme } = useThemeMode()
+  const mapTheme = useMemo(() => getMapTheme(theme), [theme])
+  
+  const layerModel = useMemo(() => {
+    const model = buildHeatmapLayerModel(data)
+    if (model.options) {
+      // Overwrite the default gradient from buildHeatmapLayerModel with the theme gradient
+      model.options.gradient = mapTheme.heatGradient.reduce((acc, color, index, arr) => {
+        acc[index / (arr.length - 1)] = color
+        return acc
+      }, {} as Record<number, string>)
+    }
+    return model
+  }, [data, mapTheme])
 
   useEffect(() => {
-    if (!map) return
-    
+    if (!map) {
+      return
+    }
+
     if (layerRef.current) {
       map.removeLayer(layerRef.current)
     }
 
-    const points = data.map(p => [p.lat, p.lng, p.count * 0.1]) // scale intensity
-    layerRef.current = (L as any).heatLayer(points, {
-      radius: 20,
-      blur: 15,
-      maxZoom: 12,
-      gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
-    }).addTo(map)
+    layerRef.current = (L as typeof L & {
+      heatLayer: (
+        items: Array<[number, number, number]>,
+        options: Record<string, unknown>
+      ) => L.Layer
+    })
+      .heatLayer(layerModel.points, layerModel.options)
+      .addTo(map)
 
     return () => {
-      if (layerRef.current && map) {
+      if (layerRef.current) {
         map.removeLayer(layerRef.current)
       }
     }
-  }, [map, data])
+  }, [layerModel, map])
 
   return null
 }
 
 const CrimeHeatMap: React.FC<HeatMapProps> = ({ heatData, districtData, onDistrictClick }) => {
-  const center: [number, number] = [41.8781, -87.6298] // Chicago
-  
-  const getDistrictStyle = () => {
+  const { theme } = useThemeMode()
+  const mapTheme = useMemo(() => getMapTheme(theme), [theme])
+  const center: [number, number] = [41.8781, -87.6298]
+  const showDistrictOverlay = hasMeaningfulDistrictBoundaries(chicagoDistricts)
+  const districtStats = useMemo(() => {
+    const normalizeIntensity = buildRelativeIntensityNormalizer(
+      districtData.map((item) => item.count),
+      {
+        minimumIntensity: 0.18,
+        percentile: 0.9
+      }
+    )
+
+    return new Map(
+      districtData.map((item) => {
+        const key = String(item.district).padStart(2, '0')
+        const relativeOpacity = 0.08 + normalizeIntensity(item.count) * 0.27
+
+        return [
+          key,
+          {
+            count: item.count,
+            fillOpacity: Math.min(0.35, relativeOpacity)
+          }
+        ]
+      })
+    )
+  }, [districtData])
+
+  const getDistrictStyle = (districtNum?: string | number): L.PathOptions => {
+    const stat = districtStats.get(String(districtNum ?? '').padStart(2, '0'))
+
     return {
-      fillColor: 'transparent',
+      fillColor: stat ? 'rgba(0, 240, 255, 0.35)' : 'transparent',
       weight: 2,
-      opacity: 0.5,
-      color: '#00f0ff',
-      fillOpacity: 0.1
+      opacity: 0.55,
+      color: mapTheme.districtStroke,
+      fillOpacity: stat?.fillOpacity ?? 0.08
     }
   }
 
-  const onEachFeature = (feature: any, layer: L.Layer) => {
-    const districtNum = feature.properties.dist_num
-    const stat = districtData.find(d => String(d.district).padStart(2, '0') === String(districtNum).padStart(2, '0'))
-    
-    layer.bindTooltip(`防区: ${districtNum}<br/>案件数: ${stat ? stat.count : 0}`, {
-      sticky: true,
-      className: 'district-tooltip'
-    })
+  const onEachFeature = (
+    feature: { properties?: { dist_num?: string } },
+    layer: L.Layer
+  ): void => {
+    const districtNum = feature.properties?.dist_num
+    const pathLayer = layer as L.Path
 
-    layer.on({
-      mouseover: (e) => {
-        const target = e.target
-        target.setStyle({ fillOpacity: 0.3, color: '#6bff83' })
+    pathLayer.setStyle(getDistrictStyle(districtNum))
+    pathLayer.on({
+      mouseover: () => {
+        pathLayer.setStyle({ fillOpacity: 0.32, color: '#6bff83' })
       },
-      mouseout: (e) => {
-        const target = e.target
-        target.setStyle(getDistrictStyle())
+      mouseout: () => {
+        pathLayer.setStyle(getDistrictStyle(districtNum))
       },
       click: () => {
-        if (onDistrictClick) onDistrictClick(districtNum)
+        if (districtNum && onDistrictClick) {
+          onDistrictClick(String(districtNum))
+        }
       }
     })
   }
 
   return (
     <div style={{ height: '100%', width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-      <MapContainer center={center} zoom={11} style={{ height: '100%', width: '100%', background: '#0e1320' }}>
+      <MapContainer
+        center={center}
+        zoom={11}
+        style={{ height: '100%', width: '100%', background: theme === 'dark' ? '#0e1320' : '#e6f4ff' }}
+        zoomControl={true}
+      >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={mapTheme.tileUrl}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
         <HeatLayer data={heatData} />
-        <GeoJSON 
-          data={chicagoDistricts as any} 
-          style={getDistrictStyle}
-          onEachFeature={onEachFeature}
-        />
+        {showDistrictOverlay ? (
+          <GeoJSON
+            data={chicagoDistricts as GeoJSON.GeoJsonObject}
+            style={(feature) => getDistrictStyle(feature?.properties?.dist_num)}
+            onEachFeature={onEachFeature}
+          />
+        ) : null}
       </MapContainer>
     </div>
   )

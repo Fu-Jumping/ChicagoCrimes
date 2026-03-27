@@ -1,0 +1,28 @@
+:root[data-theme='dark'] {
+  --color-background: #0e1320;
+  --color-surface: rgba(17, 26, 40, 0.74);
+  --color-surface-secondary: rgba(9, 14, 27, 0.92);
+  --color-surface-elevated: rgba(16, 25, 39, 0.8);
+  --color-surface-emphasis: rgba(7, 12, 24, 0.88);
+  --color-primary: #00f0ff;
+  --color-secondary: #dcb8ff;
+  --color-accent-red: #ffb4ab;
+  --color-accent-green: #6bff83;
+  --color-text-primary: #dbfcff;
+  --color-text-secondary: #b9cacb;
+  --color-text-disabled: rgba(185, 202, 203, 0.38);
+  --color-border: rgba(59, 73, 75, 0.2);
+  --color-border-medium: rgba(59, 73, 75, 0.3);
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  --color-sidebar-bg: rgba(7, 13, 24, 0.76);
+  --color-topbar-bg: rgba(7, 14, 27, 0.72);
+  --color-statusbar-bg: rgba(6, 11, 21, 0.82);
+  --route-bg-overlay:
+    linear-gradient(180deg, rgba(4, 9, 18, 0.82) 0%, rgba(6, 11, 20, 0.68) 52%, rgba(4, 9, 18, 0.84) 100%);
+  --route-bg-panel: rgba(8, 14, 26, 0.72);
+  --route-bg-panel-strong: rgba(7, 13, 24, 0.84);
+  --route-bg-panel-soft: rgba(255, 255, 255, 0.05);
+  --route-bg-texture: rgba(219, 252, 255, 0.06);
+  --route-brand-glow: rgba(0, 240, 255, 0.18);
+  --route-brand-shadow: rgba(0, 0, 0, 0.42);
+}

@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import Optional, Literal, Dict, Any
@@ -254,12 +254,49 @@ def build_meta(
         "data_quality": data_quality,
         "alerts": data_quality["alerts"],
         "state_contract": build_state_contract(data),
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "contract_version": CONTRACT_VERSION,
         "api_version": API_VERSION,
     }
     if sort:
         payload["sort"] = sort
+    return payload
+
+
+def build_filter_payload(
+    *,
+    year: Optional[int] = None,
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    primary_type: Optional[str] = None,
+    district: Optional[int] = None,
+    arrest: Optional[bool] = None,
+    month: Optional[int] = None,
+    beat: Optional[str] = None,
+    ward: Optional[int] = None,
+    community_area: Optional[int] = None,
+    domestic: Optional[bool] = None,
+    limit: Optional[int] = None,
+) -> Dict[str, Any]:
+    payload = {
+        "year": year,
+        "start_year": start_year,
+        "end_year": end_year,
+        "start_date": str(start_date) if start_date else None,
+        "end_date": str(end_date) if end_date else None,
+        "primary_type": primary_type,
+        "district": district,
+        "arrest": arrest,
+        "month": month,
+        "beat": beat,
+        "ward": ward,
+        "community_area": community_area,
+        "domestic": domestic,
+    }
+    if limit is not None:
+        payload["limit"] = limit
     return payload
 
 @router.get("/trend/yearly", response_model=ResponseModel)
@@ -272,6 +309,13 @@ def get_trend_yearly(
     end_date: Optional[date] = Query(None),
     primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
     sort: Literal["asc", "desc"] = Query("asc"),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     if start_year is not None and end_year is not None and start_year > end_year:
@@ -294,17 +338,31 @@ def get_trend_yearly(
         end_date=end_dt,
         primary_type=primary_type,
         sort=sort_value,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
     )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "start_year": start_year,
-                "end_year": end_year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-                "primary_type": primary_type,
-            },
+            filters=build_filter_payload(
+                start_year=start_year,
+                end_year=end_year,
+                start_date=start_date,
+                end_date=end_date,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             dimensions=["year"],
             metrics=["count"],
             data=data,
@@ -320,20 +378,49 @@ def get_trend_weekly(
     request: Request,
     db: Session = Depends(get_db),
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_weekly_trend(db, year, start_dt, end_dt)
+    data = analytics_service.get_weekly_trend(
+        db,
+        year,
+        primary_type=primary_type,
+        start_date=start_dt,
+        end_date=end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             dimensions=["day_of_week"],
             metrics=["count"],
             data=data,
@@ -348,20 +435,49 @@ def get_trend_hourly(
     request: Request,
     db: Session = Depends(get_db),
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_hourly_trend(db, year, start_dt, end_dt)
+    data = analytics_service.get_hourly_trend(
+        db,
+        year,
+        primary_type=primary_type,
+        start_date=start_dt,
+        end_date=end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             dimensions=["hour"],
             metrics=["count"],
             data=data,
@@ -380,20 +496,48 @@ def get_types_proportion(
     end_date: Optional[date] = Query(None),
     limit: int = Query(10, ge=LIMIT_MIN, le=LIMIT_MAX),
     sort: Literal["asc", "desc"] = Query("desc"),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     sort_value = validate_sort(sort)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_types_proportion(db, year, limit, sort_value, start_dt, end_dt)
+    data = analytics_service.get_types_proportion(
+        db,
+        year,
+        limit,
+        sort_value,
+        start_dt,
+        end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-                "limit": limit,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+                limit=limit,
+            ),
             dimensions=["primary_type"],
             metrics=["count"],
             data=data,
@@ -409,24 +553,52 @@ def get_districts_comparison(
     request: Request,
     db: Session = Depends(get_db),
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
     limit: int = Query(20, ge=LIMIT_MIN, le=LIMIT_MAX),
     sort: Literal["asc", "desc"] = Query("desc"),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     sort_value = validate_sort(sort)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_districts_comparison(db, year, limit, sort_value, start_dt, end_dt)
+    data = analytics_service.get_districts_comparison(
+        db,
+        year,
+        limit,
+        sort_value,
+        primary_type=primary_type,
+        start_date=start_dt,
+        end_date=end_dt,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-                "limit": limit,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                primary_type=primary_type,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+                limit=limit,
+            ),
             dimensions=["district"],
             metrics=["count"],
             data=data,
@@ -444,18 +616,44 @@ def get_arrests_rate(
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_arrests_rate(db, year, start_dt, end_dt)
+    data = analytics_service.get_arrests_rate(
+        db,
+        year,
+        start_dt,
+        end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             dimensions=["arrest"],
             metrics=["count"],
             data=data,
@@ -472,18 +670,44 @@ def get_domestic_proportion(
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_domestic_proportion(db, year, start_dt, end_dt)
+    data = analytics_service.get_domestic_proportion(
+        db,
+        year,
+        start_dt,
+        end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             dimensions=["domestic"],
             metrics=["count"],
             data=data,
@@ -498,24 +722,55 @@ def get_location_types_top(
     request: Request,
     db: Session = Depends(get_db),
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
     limit: int = Query(10, ge=LIMIT_MIN, le=LIMIT_MAX),
     sort: Literal["asc", "desc"] = Query("desc"),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     sort_value = validate_sort(sort)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_location_types_top(db, year, limit, sort_value, start_dt, end_dt)
+    data = analytics_service.get_location_types_top(
+        db,
+        year,
+        limit,
+        sort_value,
+        primary_type=primary_type,
+        start_date=start_dt,
+        end_date=end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-                "limit": limit,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+                limit=limit,
+            ),
             dimensions=["location_description"],
             metrics=["count"],
             data=data,
@@ -531,13 +786,42 @@ def get_trend_monthly(
     request: Request,
     db: Session = Depends(get_db),
     year: int = Query(2023, ge=YEAR_MIN, le=YEAR_MAX),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
-    data = analytics_service.get_monthly_trend(db, year)
+    data = analytics_service.get_monthly_trend(
+        db,
+        year,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={"year": year},
+            filters=build_filter_payload(
+                year=year,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             dimensions=["month"],
             metrics=["count"],
             data=data,
@@ -556,24 +840,110 @@ def get_types_arrest_rate(
     end_date: Optional[date] = Query(None),
     limit: int = Query(10, ge=LIMIT_MIN, le=LIMIT_MAX),
     sort: Literal["asc", "desc"] = Query("desc"),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
 ):
     request_id = get_request_id(request)
     sort_value = validate_sort(sort)
     start_dt, end_dt = to_datetime_range(start_date, end_date)
-    data = analytics_service.get_types_arrest_rate(db, year, limit, sort_value, start_dt, end_dt)
+    data = analytics_service.get_types_arrest_rate(
+        db,
+        year,
+        limit,
+        sort_value,
+        start_dt,
+        end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return ResponseModel(
         data=data,
         meta=build_meta(
-            filters={
-                "year": year,
-                "start_date": str(start_date) if start_date else None,
-                "end_date": str(end_date) if end_date else None,
-                "limit": limit,
-            },
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+                limit=limit,
+            ),
             dimensions=["primary_type"],
             metrics=["arrested_count", "not_arrested_count", "total_count", "arrest_rate"],
             data=data,
             sort=sort_value,
+            request_id=request_id,
+            request_path=request.url.path,
+        ),
+        request_id=request_id,
+    )
+
+
+@router.get("/filters/options", response_model=ResponseModel)
+def get_filter_options(
+    request: Request,
+    db: Session = Depends(get_db),
+    year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
+):
+    request_id = get_request_id(request)
+    start_dt, end_dt = to_datetime_range(start_date, end_date)
+    data = analytics_service.get_filter_options(
+        db,
+        year=year,
+        primary_type=primary_type,
+        start_date=start_dt,
+        end_date=end_dt,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    return ResponseModel(
+        data=data,
+        meta=build_meta(
+            filters=build_filter_payload(
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
+            dimensions=[],
+            metrics=[],
+            data=data,
             request_id=request_id,
             request_path=request.url.path,
         ),
@@ -585,15 +955,43 @@ async def get_geo_heatmap_endpoint(
     request: Request,
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
     month: Optional[int] = Query(None, ge=1, le=12),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
     db: Session = Depends(get_db)
 ):
-    data = analytics_service.get_geo_heatmap(db, year=year, month=month)
+    data = analytics_service.get_geo_heatmap(
+        db,
+        year=year,
+        month=month,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return {
         "code": "SUCCESS",
         "message": "ok",
         "data": data,
         "meta": {
-            "filters": {"year": year, "month": month},
+            "filters": build_filter_payload(
+                year=year,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             "dimension": ["lat", "lng"],
             "metrics": ["count"],
             "state_contract": build_state_contract(data),
@@ -609,15 +1007,43 @@ async def get_geo_districts_endpoint(
     request: Request,
     year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
     month: Optional[int] = Query(None, ge=1, le=12),
+    primary_type: Optional[str] = Query(None, min_length=1, max_length=100),
+    district: Optional[int] = Query(None, ge=1),
+    arrest: Optional[bool] = Query(None),
+    beat: Optional[str] = Query(None, min_length=1, max_length=10),
+    ward: Optional[int] = Query(None, ge=1),
+    community_area: Optional[int] = Query(None, ge=1),
+    domestic: Optional[bool] = Query(None),
     db: Session = Depends(get_db)
 ):
-    data = analytics_service.get_geo_districts(db, year=year, month=month)
+    data = analytics_service.get_geo_districts(
+        db,
+        year=year,
+        month=month,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
     return {
         "code": "SUCCESS",
         "message": "ok",
         "data": data,
         "meta": {
-            "filters": {"year": year, "month": month},
+            "filters": build_filter_payload(
+                year=year,
+                primary_type=primary_type,
+                district=district,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            ),
             "dimension": ["district"],
             "metrics": ["count"],
             "state_contract": build_state_contract(data),

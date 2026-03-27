@@ -13,7 +13,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "typecheck:strict": "npm run lint && npm run typecheck",
     "i18n:scan": "node ./scripts/i18n-scan.mjs",
-    "test:unit": "vitest run src/renderer/src/components/DataStatePanel.test.tsx src/renderer/src/i18n/index.test.ts",
+    "test:unit": "vitest run src/renderer/src/components/DataStatePanel.test.tsx src/renderer/src/contexts/GlobalFiltersContext.test.tsx src/renderer/src/utils/heatmapIntensity.test.ts src/renderer/src/utils/locationTypeMap.test.ts src/renderer/src/utils/sidebarFilters.test.ts src/renderer/src/utils/districtBoundaries.test.ts src/renderer/src/utils/filterParams.test.ts src/renderer/src/hooks/useDebouncedValue.test.tsx src/renderer/src/views/MapView.test.tsx src/renderer/src/i18n/index.test.ts",
     "test:ui": "vitest run src/renderer/src/components/AppLayout.test.tsx",
     "test:visual": "vitest run src/renderer/src/tests/visual-regression.test.tsx",
     "test": "npm run test:unit && npm run test:ui && npm run test:visual",

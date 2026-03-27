@@ -15,13 +15,14 @@ import './assets/main.css'
 
 function AppContent(): JSX.Element {
   const { theme } = useThemeMode()
-  
+
   return (
     <ConfigProvider
       theme={{
         algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
-          fontFamily: "'Space Grotesk', 'JetBrains Mono', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+          fontFamily:
+            "'Space Grotesk', 'JetBrains Mono', 'PingFang SC', 'Microsoft YaHei', sans-serif"
         }
       }}
     >

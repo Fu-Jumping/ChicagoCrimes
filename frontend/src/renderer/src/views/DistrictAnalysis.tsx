@@ -1,12 +1,18 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { Row, Col, Card } from 'antd'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Row, Col } from 'antd'
 import { analyticsApi, type NormalizedApiError } from '../api'
 import BarChart from '../components/charts/BarChart'
 import DataStatePanel from '../components/DataStatePanel'
 import AnalysisPageShell from '../components/AnalysisPageShell'
+import ComparisonSelect from '../components/ComparisonSelect'
+import InsightCard from '../components/InsightCard'
 import { useGlobalFilters } from '../hooks/useGlobalFilters'
+import { useChartComparison } from '../hooks/useChartComparison'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { t } from '../i18n'
 import { normalizeSeriesData, type NormalizedChartResult } from '../utils/chartData'
+import { translateLocationType } from '../utils/locationTypeMap'
+import { buildAnalyticsFilterParams } from '../utils/filterParams'
 
 const DistrictAnalysis: React.FC = () => {
   const { filters } = useGlobalFilters()
@@ -20,14 +26,46 @@ const DistrictAnalysis: React.FC = () => {
     data: [],
     downgradedCount: 0
   })
+  const requestParams = useMemo(() => buildAnalyticsFilterParams(filters), [filters])
+  const debouncedRequestParams = useDebouncedValue(requestParams, 160)
+
+  const districtComparison = useChartComparison({
+    fetchFn: (year) =>
+      analyticsApi.getDistrictsComparison({
+        ...debouncedRequestParams,
+        year,
+        limit: 20
+      }),
+    xField: 'district',
+    yField: 'count',
+    fallbackLabel: t('common.unknownDistrict')
+  })
+
+  const locationComparison = useChartComparison({
+    fetchFn: (year) =>
+      analyticsApi.getLocationTypes({
+        ...debouncedRequestParams,
+        year,
+        limit: 15
+      }),
+    xField: 'location_description',
+    yField: 'count',
+    fallbackLabel: t('common.unknownLocation')
+  })
 
   const fetchData = useCallback(async (): Promise<void> => {
     setLoading(true)
     setError(null)
     try {
       const [districtRes, locationRes] = await Promise.all([
-        analyticsApi.getDistrictsComparison({ year: filters.year ?? undefined, limit: 20 }),
-        analyticsApi.getLocationTypes({ year: filters.year ?? undefined, limit: 15 })
+        analyticsApi.getDistrictsComparison({
+          ...debouncedRequestParams,
+          limit: 20,
+        }),
+        analyticsApi.getLocationTypes({
+          ...debouncedRequestParams,
+          limit: 15,
+        })
       ])
 
       setDistrictResult(
@@ -48,27 +86,60 @@ const DistrictAnalysis: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [filters.year])
+  }, [
+    debouncedRequestParams,
+  ])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void fetchData()
-    }, 0)
-    return () => window.clearTimeout(timer)
+    let cancelled = false
+
+    const run = async (): Promise<void> => {
+      if (cancelled) {
+        return
+      }
+      await fetchData()
+    }
+
+    void run()
+
+    return () => {
+      cancelled = true
+    }
   }, [fetchData])
+
+  const buildSeriesWithCurrent = (
+    currentData: Record<string, unknown>[],
+    comparisonSeries: { data: Record<string, unknown>[]; label: string; color: string }[],
+    currentYear: number | null
+  ): { data: Record<string, unknown>[]; label: string; color: string }[] | undefined => {
+    if (comparisonSeries.length === 0) return undefined
+    const currentLabel = currentYear ? `${currentYear} 年（当前）` : '当前'
+    return [{ data: currentData, label: currentLabel, color: '#1677ff' }, ...comparisonSeries]
+  }
 
   return (
     <AnalysisPageShell
       variant="district"
-      systemTag="数据维度：地理区域 // 分析：分区对比 · 地点类型"
+      systemTag="空间范围分析 // 分区对比 · 地点类型"
       title="区域分析"
-      subtitle="各分区案件总量横向对比，并深入分析高发场所类型分布，识别重点防控区域。"
+      subtitle="从分区总量和高发地点类型两个角度识别城市中的重点防控空间。"
       debugTitle={t('debug.title')}
       debugPathPrefixes={['/analytics/districts/comparison', '/analytics/location/types']}
     >
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <Card title={t('pages.district.districtCard')} bordered={false}>
+          <InsightCard
+            eyebrow="分区对比"
+            title={t('pages.district.districtCard')}
+            description="比较各警务分区的案件体量，并支持年度对照。"
+            extra={
+              <ComparisonSelect
+                value={districtComparison.comparisonYears}
+                onChange={districtComparison.setComparisonYears}
+                excludeYear={filters.year}
+              />
+            }
+          >
             <DataStatePanel
               loading={loading}
               error={error}
@@ -76,12 +147,34 @@ const DistrictAnalysis: React.FC = () => {
               downgradedCount={districtResult.downgradedCount}
               onRetry={() => void fetchData()}
             >
-              <BarChart data={districtResult.data} xField="district" yField="count" height={300} />
+              <BarChart
+                data={districtResult.data}
+                xField="district"
+                yField="count"
+                yFieldLabel="案件数量"
+                height={300}
+                series={buildSeriesWithCurrent(
+                  districtResult.data,
+                  districtComparison.series,
+                  filters.year
+                )}
+              />
             </DataStatePanel>
-          </Card>
+          </InsightCard>
         </Col>
         <Col span={24}>
-          <Card title={t('pages.district.locationCard')} bordered={false}>
+          <InsightCard
+            eyebrow="高发地点"
+            title={t('pages.district.locationCard')}
+            description="查看最常见的案件发生地点类型及其变化。"
+            extra={
+              <ComparisonSelect
+                value={locationComparison.comparisonYears}
+                onChange={locationComparison.setComparisonYears}
+                excludeYear={filters.year}
+              />
+            }
+          >
             <DataStatePanel
               loading={loading}
               error={error}
@@ -93,10 +186,17 @@ const DistrictAnalysis: React.FC = () => {
                 data={locationResult.data}
                 xField="location_description"
                 yField="count"
+                yFieldLabel="案件数量"
                 height={350}
+                labelTranslator={translateLocationType}
+                series={buildSeriesWithCurrent(
+                  locationResult.data,
+                  locationComparison.series,
+                  filters.year
+                )}
               />
             </DataStatePanel>
-          </Card>
+          </InsightCard>
         </Col>
       </Row>
     </AnalysisPageShell>

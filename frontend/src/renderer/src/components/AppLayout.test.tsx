@@ -50,7 +50,7 @@ describe('AppLayout', () => {
         <MemoryRouter>
           <GlobalFiltersProvider>
             <AppLayout>
-              <div>content</div>
+              <div className="analysis-module-card">content</div>
             </AppLayout>
           </GlobalFiltersProvider>
         </MemoryRouter>
@@ -71,6 +71,7 @@ describe('AppLayout', () => {
     expect(screen.getAllByText(SIDEBAR_FILTER_GROUPS[2].title).length).toBeGreaterThan(0)
     expect(screen.getByText(SIDEBAR_FILTER_LABELS.communityArea)).toBeInTheDocument()
     expect(container.querySelector('.app-route-backdrop')).toBeInTheDocument()
+    expect(container.querySelector('.analysis-module-card')).toBeInTheDocument()
   })
 
   it('renders localized compact filter controls with click-only inputs', () => {

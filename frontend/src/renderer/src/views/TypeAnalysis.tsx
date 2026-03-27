@@ -1,17 +1,39 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { Row, Col, Card } from 'antd'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Row, Col } from 'antd'
 import { analyticsApi, type NormalizedApiError } from '../api'
 import PieChart from '../components/charts/PieChart'
+import RoseChart from '../components/charts/RoseChart'
 import BarChart from '../components/charts/BarChart'
 import DataStatePanel from '../components/DataStatePanel'
 import AnalysisPageShell from '../components/AnalysisPageShell'
+import ComparisonSelect from '../components/ComparisonSelect'
+import InsightCard from '../components/InsightCard'
 import { useGlobalFilters } from '../hooks/useGlobalFilters'
+import { useChartComparison } from '../hooks/useChartComparison'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { t } from '../i18n'
 import {
   normalizeSeriesData,
   type GenericRow,
   type NormalizedChartResult
 } from '../utils/chartData'
+import { translateCrimeType } from '../utils/crimeTypeMap'
+import { buildAnalyticsFilterParams } from '../utils/filterParams'
+
+const normalizeArrestRows = (rows: GenericRow[]): GenericRow[] =>
+  rows.map((row) => {
+    const rateValue = row.arrest_rate
+    const numericRate =
+      typeof rateValue === 'number'
+        ? rateValue
+        : typeof rateValue === 'string'
+          ? Number(rateValue)
+          : 0
+    return {
+      ...row,
+      arrest_rate: Number.isFinite(numericRate) ? numericRate * 100 : 0
+    }
+  })
 
 const TypeAnalysis: React.FC = () => {
   const { filters } = useGlobalFilters()
@@ -29,37 +51,46 @@ const TypeAnalysis: React.FC = () => {
     data: [],
     downgradedCount: 0
   })
+  const requestParams = useMemo(() => buildAnalyticsFilterParams(filters), [filters])
+  const debouncedRequestParams = useDebouncedValue(requestParams, 160)
+
+  const arrestComparison = useChartComparison({
+    fetchFn: async (year) => {
+      const res = await analyticsApi.getTypesArrestRate({
+        ...debouncedRequestParams,
+        year,
+        limit: 5
+      })
+      return { data: normalizeArrestRows(res.data as GenericRow[]) }
+    },
+    xField: 'primary_type',
+    yField: 'arrest_rate',
+    fallbackLabel: t('common.unknownType')
+  })
 
   const fetchData = useCallback(async (): Promise<void> => {
     setLoading(true)
     setError(null)
     try {
       const [typeRes, arrestRes, domesticRes] = await Promise.all([
-        analyticsApi.getTypesProportion({ year: filters.year ?? undefined, limit: 10 }),
-        analyticsApi.getTypesArrestRate({ year: filters.year ?? undefined, limit: 5 }),
-        analyticsApi.getDomesticProportion({ year: filters.year ?? undefined })
+        analyticsApi.getTypesProportion({
+          ...debouncedRequestParams,
+          limit: 10,
+        }),
+        analyticsApi.getTypesArrestRate({
+          ...debouncedRequestParams,
+          limit: 5,
+        }),
+        analyticsApi.getDomesticProportion(debouncedRequestParams)
       ])
 
       setTypeResult(
         normalizeSeriesData(typeRes.data, 'primary_type', 'count', t('common.unknownType'))
       )
 
-      const normalizedArrestRows = (arrestRes.data as GenericRow[]).map((row) => {
-        const rateValue = row.arrest_rate
-        const numericRate =
-          typeof rateValue === 'number'
-            ? rateValue
-            : typeof rateValue === 'string'
-              ? Number(rateValue)
-              : 0
-        return {
-          ...row,
-          arrest_rate: Number.isFinite(numericRate) ? numericRate * 100 : 0
-        }
-      })
       setArrestRateResult(
         normalizeSeriesData(
-          normalizedArrestRows,
+          normalizeArrestRows(arrestRes.data as GenericRow[]),
           'primary_type',
           'arrest_rate',
           t('common.unknownType')
@@ -86,21 +117,41 @@ const TypeAnalysis: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [filters.year])
+  }, [debouncedRequestParams])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void fetchData()
-    }, 0)
-    return () => window.clearTimeout(timer)
+    let cancelled = false
+
+    const run = async (): Promise<void> => {
+      if (cancelled) {
+        return
+      }
+      await fetchData()
+    }
+
+    void run()
+
+    return () => {
+      cancelled = true
+    }
   }, [fetchData])
+
+  const buildSeriesWithCurrent = (
+    currentData: Record<string, unknown>[],
+    comparisonSeries: { data: Record<string, unknown>[]; label: string; color: string }[],
+    currentYear: number | null
+  ): { data: Record<string, unknown>[]; label: string; color: string }[] | undefined => {
+    if (comparisonSeries.length === 0) return undefined
+    const currentLabel = currentYear ? `${currentYear} 年（当前）` : '当前'
+    return [{ data: currentData, label: currentLabel, color: '#1677ff' }, ...comparisonSeries]
+  }
 
   return (
     <AnalysisPageShell
       variant="type"
-      systemTag="数据维度：事件类型 // 分析：分类 · 逮捕率 · 家暴占比"
+      systemTag="事件类型分析 // 分类 · 逮捕率 · 家暴占比"
       title="类型分析"
-      subtitle="对犯罪事件分类、逮捕效率指标及家暴与公共事件比例进行深度对比分析。"
+      subtitle="从案件类型、逮捕率和家暴占比三条线索理解案件结构特征。"
       debugTitle={t('debug.title')}
       debugPathPrefixes={[
         '/analytics/types/proportion',
@@ -110,7 +161,11 @@ const TypeAnalysis: React.FC = () => {
     >
       <Row gutter={[16, 16]}>
         <Col span={12}>
-          <Card title={t('pages.type.typeCard')} bordered={false}>
+          <InsightCard
+            eyebrow="类型构成"
+            title={t('pages.type.typeCard')}
+            description="展示当前筛选下主要案件类型的占比关系。"
+          >
             <DataStatePanel
               loading={loading}
               error={error}
@@ -118,17 +173,22 @@ const TypeAnalysis: React.FC = () => {
               downgradedCount={typeResult.downgradedCount}
               onRetry={() => void fetchData()}
             >
-              <PieChart
+              <RoseChart
                 data={typeResult.data}
                 labelField="primary_type"
                 valueField="count"
                 height={350}
+                labelTranslator={translateCrimeType}
               />
             </DataStatePanel>
-          </Card>
+          </InsightCard>
         </Col>
         <Col span={12}>
-          <Card title={t('pages.type.domesticCard')} bordered={false}>
+          <InsightCard
+            eyebrow="家暴占比"
+            title={t('pages.type.domesticCard')}
+            description="比较家暴与非家暴案件在当前条件下的占比。"
+          >
             <DataStatePanel
               loading={loading}
               error={error}
@@ -143,10 +203,21 @@ const TypeAnalysis: React.FC = () => {
                 height={350}
               />
             </DataStatePanel>
-          </Card>
+          </InsightCard>
         </Col>
         <Col span={24}>
-          <Card title={t('pages.type.arrestCard')} bordered={false}>
+          <InsightCard
+            eyebrow="逮捕效率"
+            title={t('pages.type.arrestCard')}
+            description="针对高频案件类型对比逮捕率表现。"
+            extra={
+              <ComparisonSelect
+                value={arrestComparison.comparisonYears}
+                onChange={arrestComparison.setComparisonYears}
+                excludeYear={filters.year}
+              />
+            }
+          >
             <DataStatePanel
               loading={loading}
               error={error}
@@ -158,10 +229,17 @@ const TypeAnalysis: React.FC = () => {
                 data={arrestRateResult.data}
                 xField="primary_type"
                 yField="arrest_rate"
+                yFieldLabel="逮捕率(%)"
                 height={300}
+                labelTranslator={translateCrimeType}
+                series={buildSeriesWithCurrent(
+                  arrestRateResult.data,
+                  arrestComparison.series,
+                  filters.year
+                )}
               />
             </DataStatePanel>
-          </Card>
+          </InsightCard>
         </Col>
       </Row>
     </AnalysisPageShell>

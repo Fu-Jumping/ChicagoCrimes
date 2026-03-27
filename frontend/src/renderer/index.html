@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Electron</title>
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org; connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 http://127.0.0.1:7625 ws://localhost:5173 https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org"
+    />
+  </head>
+
+  <body>
+    <div id="root" style="width: 100vw; height: 100vh; margin: 0; padding: 0"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

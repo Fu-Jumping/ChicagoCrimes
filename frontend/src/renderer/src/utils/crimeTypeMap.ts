@@ -1,0 +1,40 @@
+const CRIME_TYPE_ZH: Record<string, string> = {
+  THEFT: '盗窃',
+  BATTERY: '殴打',
+  'CRIMINAL DAMAGE': '刑事损毁',
+  NARCOTICS: '毒品犯罪',
+  ASSAULT: '人身攻击',
+  'OTHER OFFENSE': '其他犯罪',
+  BURGLARY: '入室盗窃',
+  'MOTOR VEHICLE THEFT': '机动车盗窃',
+  'DECEPTIVE PRACTICE': '欺诈行为',
+  ROBBERY: '抢劫',
+  'CRIMINAL TRESPASS': '刑事侵入',
+  'WEAPONS VIOLATION': '武器违规',
+  PROSTITUTION: '卖淫',
+  'PUBLIC PEACE VIOLATION': '扰乱公共秩序',
+  'OFFENSE INVOLVING CHILDREN': '涉及儿童犯罪',
+  'SEX OFFENSE': '性犯罪',
+  'CRIM SEXUAL ASSAULT': '刑事性侵',
+  STALKING: '跟踪骚扰',
+  'INTERFERENCE WITH PUBLIC OFFICER': '妨碍公务',
+  GAMBLING: '赌博',
+  ARSON: '纵火',
+  'LIQUOR LAW VIOLATION': '违反酒类法规',
+  KIDNAPPING: '绑架',
+  INTIMIDATION: '恐吓威胁',
+  HOMICIDE: '杀人',
+  OBSCENITY: '淫秽行为',
+  'CONCEALED CARRY LICENSE VIOLATION': '隐蔽携带许可违规',
+  'NON-CRIMINAL': '非刑事事件',
+  'PUBLIC INDECENCY': '公共猥亵',
+  'HUMAN TRAFFICKING': '人口贩卖',
+  'OTHER NARCOTIC VIOLATION': '其他毒品违规',
+  RITUALISM: '仪式犯罪',
+  'NON-CRIMINAL (SUBJECT SPECIFIED)': '非刑事事件（指定主体）',
+  'DOMESTIC VIOLENCE': '家庭暴力'
+}
+
+export function translateCrimeType(englishName: string): string {
+  return CRIME_TYPE_ZH[englishName] ?? englishName
+}

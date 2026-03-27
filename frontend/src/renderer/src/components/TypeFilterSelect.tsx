@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Select } from 'antd'
 import { analyticsApi } from '../api'
+import { translateCrimeType } from '../utils/crimeTypeMap'
+import { ALL_FILTER_OPTION } from '../utils/sidebarFilters'
 
 interface TypeFilterSelectProps {
   value: string | null
@@ -8,41 +10,42 @@ interface TypeFilterSelectProps {
 }
 
 const TypeFilterSelect: React.FC<TypeFilterSelectProps> = ({ value, onChange }) => {
-  const [types, setTypes] = useState<{ label: string; value: string }[]>([])
+  const [types, setTypes] = useState<{ label: string; value: string }[]>([ALL_FILTER_OPTION])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const fetchTypes = async () => {
+    const fetchTypes = async (): Promise<void> => {
       setLoading(true)
       try {
-        // Fetch top 20 types for the dropdown
-        const res = await analyticsApi.getTypesProportion({ limit: 20 })
-        const options = res.data.map((item: any) => ({
-          label: item.primary_type,
-          value: item.primary_type
+        const response = await analyticsApi.getTypesProportion({ limit: 20 })
+        const options = response.data.map((item: Record<string, unknown>) => ({
+          label: translateCrimeType(String(item.primary_type)),
+          value: String(item.primary_type)
         }))
-        setTypes(options)
-      } catch (e) {
-        console.error('Failed to fetch types', e)
+        setTypes([ALL_FILTER_OPTION, ...options])
+      } catch (error) {
+        console.error('Failed to fetch types', error)
       } finally {
         setLoading(false)
       }
     }
-    fetchTypes()
+
+    void fetchTypes()
   }, [])
 
   return (
     <Select
-      allowClear
-      showSearch
+      showSearch={false}
       loading={loading}
-      placeholder="选择犯罪类型"
-      value={value}
-      onChange={(val) => onChange(val || null)}
+      size="small"
+      value={value ?? ALL_FILTER_OPTION.value}
+      onChange={(nextValue) =>
+        onChange(nextValue === ALL_FILTER_OPTION.value ? null : nextValue)
+      }
       options={types}
-      style={{ width: '100%' }}
+      style={{ width: '100%', cursor: 'pointer' }}
       className="glow-select"
-      dropdownStyle={{ fontFamily: 'var(--font-family-mono)' }}
+      styles={{ popup: { root: { fontFamily: 'var(--font-family-mono)' } } }}
     />
   )
 }
