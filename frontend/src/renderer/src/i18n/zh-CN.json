@@ -1,0 +1,103 @@
+{
+  "app": {
+    "brand": "芝加哥犯罪可视化指挥台",
+    "windowTitle": "芝加哥犯罪可视化",
+    "windowMinimize": "最小化",
+    "windowMaximize": "最大化",
+    "windowClose": "关闭窗口"
+  },
+  "nav": {
+    "overview": "综合总览",
+    "trend": "趋势分析",
+    "type": "类型分析",
+    "district": "区域分析",
+    "map": "空间地图",
+    "themeLight": "切换为浅色主题",
+    "themeDark": "切换为深色主题",
+    "settings": "设置",
+    "notifications": "通知",
+    "clearFilters": "清空筛选"
+  },
+  "global": {
+    "yearTag": "年份：{value}",
+    "typeTag": "类型：{value}",
+    "none": "无"
+  },
+  "sidebar": {
+    "currentPage": "当前视图",
+    "activeFilters": "活动筛选",
+    "noFilters": "暂无筛选条件",
+    "dataSource": "数据来源",
+    "dataRange": "芝加哥犯罪数据库",
+    "dataYears": "2001 — 2023",
+    "systemOnline": "系统在线"
+  },
+  "common": {
+    "retry": "重新加载",
+    "unknownYear": "未知年份",
+    "unknownMonth": "未知月份",
+    "unknownWeekday": "未知星期",
+    "unknownHour": "未知时段",
+    "unknownDistrict": "未知分区",
+    "unknownType": "未知类型",
+    "unknownLocation": "未知地点",
+    "yes": "是",
+    "no": "否"
+  },
+  "yearFilter": {
+    "placeholder": "选择年份"
+  },
+  "states": {
+    "loading": "加载中",
+    "loadingDesc": "正在获取最新分析数据",
+    "errorTitle": "数据加载异常",
+    "errorDesc": "系统服务异常，请稍后重试",
+    "emptyTitle": "当前条件下暂无数据",
+    "emptyDesc": "请调整筛选条件后重试",
+    "degraded": "{count} 条记录已按降级策略处理"
+  },
+  "pages": {
+    "dashboard": {
+      "title": "综合总览",
+      "yearlyCard": "年度案件趋势",
+      "typeCard": "类型占比（Top 5）",
+      "districtCard": "分区案件对比",
+      "eventStatusTitle": "图表联动",
+      "eventStatusDesc": "已将「{dimension}」筛选设置为「{value}」，全局筛选已同步"
+    },
+    "trend": {
+      "title": "趋势分析",
+      "monthlyCard": "月度案件趋势",
+      "weeklyCard": "周内分布",
+      "hourlyCard": "小时分布"
+    },
+    "district": {
+      "title": "区域分析",
+      "districtCard": "分区案件总量对比",
+      "locationCard": "高发地点类型（Top 15）"
+    },
+    "type": {
+      "title": "类型分析",
+      "typeCard": "犯罪类型占比",
+      "domesticCard": "家暴案件占比",
+      "arrestCard": "类型逮捕率对比"
+    }
+  },
+  "debug": {
+    "title": "请求调试面板",
+    "total": "总请求",
+    "failed": "失败",
+    "cacheHit": "缓存命中",
+    "avgDuration": "平均耗时",
+    "clear": "清空历史",
+    "empty": "暂无请求记录",
+    "time": "时间",
+    "request": "请求",
+    "status": "状态",
+    "cache": "缓存",
+    "duration": "耗时(ms)",
+    "requestId": "请求ID",
+    "errorSummary": "错误摘要",
+    "retry": "重试#{count}"
+  }
+}
