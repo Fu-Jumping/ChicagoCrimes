@@ -6,13 +6,17 @@ import {
   PieChartOutlined,
   BarChartOutlined,
   BulbOutlined,
-  GlobalOutlined
+  GlobalOutlined,
+  PrinterOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useGlobalFilters } from '../hooks/useGlobalFilters'
 import { useThemeMode } from '../hooks/useThemeMode'
+import { useRequestHistory } from '../hooks/useRequestHistory'
 import { t } from '../i18n'
 import TitleBar from './TitleBar'
+import YearFilterSelect from './YearFilterSelect'
+import TypeFilterSelect from './TypeFilterSelect'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -68,11 +72,14 @@ export { dimensionLabelMap }
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { filters, clearFilters } = useGlobalFilters()
+  const { filters, clearFilters, setYear, setPrimaryType } = useGlobalFilters()
   const { theme, toggleTheme } = useThemeMode()
 
   const currentPage = pageContextMap[location.pathname] ?? pageContextMap['/']
   const hasActiveFilters = !!(filters.year || filters.primaryType)
+
+  const { summary } = useRequestHistory([]) // Get global request summary
+  const hitRate = summary.total > 0 ? Math.round((summary.cacheHit / summary.total) * 100) : 0
 
   return (
     <div className="app-window-container">
@@ -100,6 +107,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <div className="header-right">
             <button
               className="icon-btn"
+              onClick={() => window.print()}
+              aria-label="导出报告"
+              title="导出报告"
+            >
+              <PrinterOutlined />
+            </button>
+            <button
+              className="icon-btn"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? t('nav.themeLight') : t('nav.themeDark')}
               title={theme === 'dark' ? t('nav.themeLight') : t('nav.themeDark')}
@@ -123,32 +138,29 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <p className="sidebar-page-desc">{currentPage.desc}</p>
             </div>
 
-            {/* Active Filters */}
+            {/* Active Filters / Controls */}
             <div className="sidebar-filter-section">
-              <div className="sidebar-section-label">{t('sidebar.activeFilters')}</div>
-              {hasActiveFilters ? (
-                <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                  {filters.year && (
-                    <Tag className="sidebar-filter-tag">
-                      {t('global.yearTag', { value: filters.year })}
-                    </Tag>
-                  )}
-                  {filters.primaryType && (
-                    <Tag className="sidebar-filter-tag">
-                      {t('global.typeTag', { value: filters.primaryType })}
-                    </Tag>
-                  )}
+              <div className="sidebar-section-label">全局分析参数</div>
+              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>分析年份</div>
+                  <YearFilterSelect value={filters.year} onChange={setYear} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>犯罪类型</div>
+                  <TypeFilterSelect value={filters.primaryType} onChange={setPrimaryType} />
+                </div>
+                {hasActiveFilters && (
                   <Button
                     size="small"
                     className="sidebar-clear-btn"
                     onClick={clearFilters}
+                    style={{ width: '100%' }}
                   >
                     {t('nav.clearFilters')}
                   </Button>
-                </Space>
-              ) : (
-                <p className="sidebar-no-filter">{t('sidebar.noFilters')}</p>
-              )}
+                )}
+              </Space>
             </div>
 
             {/* Data Source Info */}
@@ -173,13 +185,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             {/* Bottom Status Bar */}
             <div className="urban-statusbar">
               <div className="statusbar-coords">
-                <span className="statusbar-coord-item">纬度: 41.8781° N</span>
-                <span className="statusbar-coord-item">经度: 87.6298° W</span>
-                <span className="statusbar-coord-item">芝加哥 · 伊利诺伊州</span>
+                <span className="statusbar-coord-item">API 延迟: {summary.avgDurationMs.toFixed(0)}ms</span>
+                <span className="statusbar-coord-item">缓存命中率: {hitRate}%</span>
+                <span className="statusbar-coord-item">总请求数: {summary.total}</span>
               </div>
               <div className="statusbar-channel">
-                <div className="statusbar-dot" />
-                <span className="statusbar-channel-text">数据库连接正常</span>
+                <div className="statusbar-dot" style={{ background: summary.failed > 0 ? 'var(--color-accent-red)' : 'var(--color-accent-green)', boxShadow: `0 0 8px ${summary.failed > 0 ? 'var(--color-accent-red)' : 'var(--color-accent-green)'}` }} />
+                <span className="statusbar-channel-text">
+                  {summary.failed > 0 ? '系统存在异常' : '系统运行正常'}
+                </span>
               </div>
             </div>
           </main>
