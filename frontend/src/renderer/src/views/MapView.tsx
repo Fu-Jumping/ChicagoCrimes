@@ -3,13 +3,12 @@ import { Card, Space } from 'antd'
 import AnalysisPageShell from '../components/AnalysisPageShell'
 import CrimeHeatMap from '../components/charts/CrimeHeatMap'
 import TimelinePlayer from '../components/TimelinePlayer'
-import YearFilterSelect from '../components/YearFilterSelect'
 import DataStatePanel from '../components/DataStatePanel'
 import { useGlobalFilters } from '../hooks/useGlobalFilters'
 import { analyticsApi } from '../api'
 
 const MapView: React.FC = () => {
-  const { filters, setYear } = useGlobalFilters()
+  const { filters } = useGlobalFilters()
   const [month, setMonth] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [heatData, setHeatData] = useState([])
@@ -41,7 +40,6 @@ const MapView: React.FC = () => {
       systemTag="空间分析引擎 // 卫星遥测"
       title="地理热力图"
       subtitle="基于经纬度的犯罪密度热力分布与区域聚合分析。"
-      filter={<YearFilterSelect value={filters.year} onChange={setYear} />}
       debugTitle="地理请求调试"
       debugPathPrefixes={['/analytics/geo/heatmap', '/analytics/geo/districts']}
     >
