@@ -4,12 +4,12 @@ import typeBackground from './type.jpg'
 import district from './district.jpg'
 import map from './map.jpg'
 
-const routeBackgrounds = {
+const routeBackgrounds: Record<string, string> = {
   overview,
   trend,
   type: typeBackground,
   district,
   map
-} as const
+}
 
 export default routeBackgrounds
