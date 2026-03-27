@@ -26,6 +26,10 @@
   "sidebar": {
     "currentPage": "当前视图",
     "activeFilters": "活动筛选",
+    "groupTime": "时间范围",
+    "groupEvent": "事件条件",
+    "groupSpace": "空间范围",
+    "filterSummary": "筛选摘要",
     "noFilters": "暂无筛选条件",
     "dataSource": "数据来源",
     "dataRange": "芝加哥犯罪数据库",
