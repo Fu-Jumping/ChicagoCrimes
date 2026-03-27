@@ -909,3 +909,29 @@ body {
 .leaflet-container {
   font-family: inherit;
 }
+
+/* Print Styles */
+@media print {
+  .urban-sidebar,
+  .urban-oracle-header,
+  .urban-statusbar,
+  .analysis-shell__debug {
+    display: none !important;
+  }
+  .urban-oracle-main {
+    padding: 0 !important;
+    background: white !important;
+  }
+  .urban-oracle-content {
+    padding: 0 !important;
+  }
+  .ant-card {
+    break-inside: avoid;
+    border: 1px solid #ddd !important;
+  }
+  * {
+    color: black !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+}

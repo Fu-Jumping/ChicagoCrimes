@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, Space, Tag } from 'antd'
+import { Button, Space } from 'antd'
 import {
   AppstoreOutlined,
   LineChartOutlined,

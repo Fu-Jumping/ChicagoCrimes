@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Select } from 'antd'
 import { analyticsApi } from '../api'
-import { t } from '../i18n'
 
 interface TypeFilterSelectProps {
   value: string | null
