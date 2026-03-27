@@ -603,3 +603,27 @@ async def get_geo_heatmap_endpoint(
         },
         "request_id": get_request_id(request)
     }
+
+@router.get("/geo/districts", response_model=ResponseModel)
+async def get_geo_districts_endpoint(
+    request: Request,
+    year: Optional[int] = Query(None, ge=YEAR_MIN, le=YEAR_MAX),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    db: Session = Depends(get_db)
+):
+    data = analytics_service.get_geo_districts(db, year=year, month=month)
+    return {
+        "code": "SUCCESS",
+        "message": "ok",
+        "data": data,
+        "meta": {
+            "filters": {"year": year, "month": month},
+            "dimension": ["district"],
+            "metrics": ["count"],
+            "state_contract": build_state_contract(data),
+            "data_quality": {"status": "pass", "alerts": []},
+            "contract_version": CONTRACT_VERSION,
+            "api_version": API_VERSION
+        },
+        "request_id": get_request_id(request)
+    }

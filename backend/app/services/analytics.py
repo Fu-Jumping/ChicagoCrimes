@@ -301,3 +301,18 @@ def get_geo_heatmap(db: Session, year: Optional[int] = None, month: Optional[int
     
     results = query.all()
     return [{"lat": r.lat, "lng": r.lng, "count": r.count} for r in results]
+
+def get_geo_districts(db: Session, year: Optional[int] = None, month: Optional[int] = None):
+    query = db.query(
+        Crime.district,
+        func.count(Crime.id).label("count")
+    ).filter(Crime.district.isnot(None))
+    
+    if year is not None:
+        query = query.filter(Crime.year == year)
+    if month is not None:
+        query = query.filter(func.month(Crime.date) == month)
+        
+    query = query.group_by(Crime.district)
+    results = query.all()
+    return [{"district": r.district, "count": r.count} for r in results]

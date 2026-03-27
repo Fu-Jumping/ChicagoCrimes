@@ -14,3 +14,12 @@ def test_get_geo_heatmap():
         assert "lat" in data["data"][0]
         assert "lng" in data["data"][0]
         assert "count" in data["data"][0]
+
+def test_get_geo_districts():
+    response = client.get("/api/v1/analytics/geo/districts?year=2023")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["code"] == "SUCCESS"
+    if len(data["data"]) > 0:
+        assert "district" in data["data"][0]
+        assert "count" in data["data"][0]
