@@ -52,6 +52,24 @@ def _params(body: DatabaseConfigBody) -> ss.DbConnParams:
     )
 
 
+@router.post("/reset")
+def post_reset_setup():
+    """Clear all imported data & summaries so user can re-run the setup wizard."""
+    try:
+        result = ss.reset_setup_data()
+        return result
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "RESET_FAILED",
+                "message": str(exc),
+                "error_type": "setup_error",
+                "details": [],
+            },
+        ) from exc
+
+
 @router.get("/status")
 def get_setup_status():
     base = ss.setup_status_from_db()

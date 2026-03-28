@@ -728,3 +728,30 @@ def build_all_summaries_with_queue(q: queue.Queue) -> None:
         q.put({"phase": "error", "message": _humanize_mysql_error(exc)})
     finally:
         q.put(None)
+
+
+_SUMMARY_TABLES = [
+    "crimes_summary",
+    "crimes_filter_summary",
+    "crimes_location_summary",
+    "crimes_daily_summary",
+]
+
+
+def reset_setup_data() -> dict[str, Any]:
+    """Drop summary tables and truncate crimes so the setup wizard can be re-run."""
+    if _db.engine is None:
+        return {"ok": True, "detail": "engine not configured, nothing to reset"}
+    dropped: list[str] = []
+    truncated = False
+    with _db.engine.begin() as conn:
+        for tbl in _SUMMARY_TABLES:
+            conn.execute(text(f"DROP TABLE IF EXISTS `{tbl}`"))
+            dropped.append(tbl)
+        insp = inspect(_db.engine)
+        if insp.has_table("crimes"):
+            conn.execute(text("TRUNCATE TABLE `crimes`"))
+            truncated = True
+    reset_summary_capabilities_cache()
+    log.info("reset_setup_data dropped=%s truncated=%s", dropped, truncated)
+    return {"ok": True, "dropped": dropped, "truncated": "crimes" if truncated else None}

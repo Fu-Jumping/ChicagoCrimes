@@ -21,7 +21,7 @@ from app.schemas.crime import ErrorResponseModel
 app = FastAPI(
     title="Chicago Crime Visualization API",
     description="Backend API for Chicago Crime Data Visualization Desktop App",
-    version="1.0.0"
+    version="1.0.1"
 )
 
 logger = logging.getLogger("chicago_crime_api")

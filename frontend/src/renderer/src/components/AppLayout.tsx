@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Select, Switch } from 'antd'
+import { Button, Modal, Select, Switch } from 'antd'
 import {
   AppstoreOutlined,
   BarChartOutlined,
   BulbFilled,
   BulbOutlined,
+  DatabaseOutlined,
   GlobalOutlined,
   LineChartOutlined,
   LinkOutlined,
@@ -15,6 +16,7 @@ import {
 } from '@ant-design/icons'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { analyticsApi } from '../api'
+import { postResetSetup } from '../api/setupWizard'
 import routeBackgrounds from '../assets/backgrounds'
 import appIcon from '../assets/icon.ico'
 import { useGlobalFilters } from '../hooks/useGlobalFilters'
@@ -45,6 +47,7 @@ import ArrestFilterSelect from './ArrestFilterSelect'
 
 interface AppLayoutProps {
   children: React.ReactNode
+  onResetSetup?: () => void
 }
 
 interface SidebarFilterOptions {
@@ -135,7 +138,7 @@ export const dimensionLabelMap: Record<string, string> = {
   domestic: '是否家暴'
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const {
@@ -732,6 +735,37 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     <span>当前年份：{summarizeValue(filters.year)}</span>
                   </div>
                 </section>
+
+                {onResetSetup && (
+                  <section className="sidebar-panel" style={{ paddingTop: 4 }}>
+                    <Button
+                      size="small"
+                      icon={<DatabaseOutlined />}
+                      style={{ width: '100%' }}
+                      onClick={() => {
+                        Modal.confirm({
+                          title: '重新导入数据',
+                          content:
+                            '将清空当前已导入的犯罪数据和汇总表，然后重新打开数据导入向导。如果当前数据显示异常或导入了错误文件，可使用此功能重新导入。',
+                          okText: '确认清空并重新导入',
+                          cancelText: '取消',
+                          okButtonProps: { danger: true },
+                          onOk: async () => {
+                            try {
+                              await postResetSetup()
+                              await window.api?.setSetupStore?.({ setupCompleted: false })
+                            } catch (e) {
+                              console.error('reset failed', e)
+                            }
+                            onResetSetup()
+                          }
+                        })
+                      }}
+                    >
+                      重新导入数据
+                    </Button>
+                  </section>
+                )}
               </div>
             )}
           </aside>

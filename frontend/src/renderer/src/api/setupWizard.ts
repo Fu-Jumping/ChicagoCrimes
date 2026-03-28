@@ -171,6 +171,19 @@ export async function streamBuildSummaries(onEvent: (data: Record<string, unknow
   await consumeSetupSse('/api/setup/build-summaries/stream', {}, onEvent)
 }
 
+export async function postResetSetup(): Promise<{ ok: boolean }> {
+  const r = await fetch(`${SETUP_BACKEND_ORIGIN}/api/setup/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}'
+  })
+  if (!r.ok) {
+    const text = await r.text()
+    throw new Error(text || `reset HTTP ${r.status}`)
+  }
+  return r.json() as Promise<{ ok: boolean }>
+}
+
 export function isSetupFullyReady(status: SetupStatusResponse): boolean {
   return Boolean(
     status.database_configured && status.crimes_populated && status.summaries_ready && !status.error

@@ -16,7 +16,7 @@ import MapView from './views/MapView'
 import { fetchSetupStatus, isSetupFullyReady } from './api/setupWizard'
 import './assets/main.css'
 
-function AppContent(): JSX.Element {
+function AppContent({ onResetSetup }: { onResetSetup: () => void }): JSX.Element {
   const { theme } = useThemeMode()
 
   return (
@@ -31,7 +31,7 @@ function AppContent(): JSX.Element {
     >
       <HashRouter>
         <GlobalFiltersProvider>
-          <AppLayout>
+          <AppLayout onResetSetup={onResetSetup}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/trend" element={<TrendAnalysis />} />
@@ -205,7 +205,7 @@ function SetupGate(): JSX.Element {
     )
   }
 
-  return <AppContent />
+  return <AppContent onResetSetup={() => setPhase('wizard')} />
 }
 
 function App(): JSX.Element {
