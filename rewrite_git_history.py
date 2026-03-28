@@ -70,11 +70,11 @@ if __name__ == '__main__':
 """)
 
     # Run git filter-branch
-    # Note: filter-branch is sometimes picky about paths on Windows
-    # We'll use python to run the filter script
+    # Use absolute path for msg_filter.py
+    abs_filter_path = os.path.abspath('msg_filter.py').replace('\\', '/')
     cmd = [
         'git', 'filter-branch', '--force', '--msg-filter',
-        'python msg_filter.py',
+        f'python "{abs_filter_path}"',
         '--', '--all'
     ]
     
