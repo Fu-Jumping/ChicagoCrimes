@@ -4,11 +4,12 @@ import { analyticsApi } from '../api'
 import { ALL_FILTER_OPTION } from '../utils/sidebarFilters'
 
 interface DistrictFilterSelectProps {
-  value: number | null
-  onChange: (district: number | null) => void
+  value: number | number[] | null
+  onChange: (district: number | number[] | null) => void
+  mode?: 'multiple'
 }
 
-const DistrictFilterSelect: React.FC<DistrictFilterSelectProps> = ({ value, onChange }) => {
+const DistrictFilterSelect: React.FC<DistrictFilterSelectProps> = ({ value, onChange, mode }) => {
   const [options, setOptions] = useState<{ label: string; value: string | number }[]>([
     ALL_FILTER_OPTION
   ])
@@ -32,10 +33,27 @@ const DistrictFilterSelect: React.FC<DistrictFilterSelectProps> = ({ value, onCh
 
   return (
     <Select
-      value={value ?? ALL_FILTER_OPTION.value}
-      onChange={(nextValue) =>
-        onChange(nextValue === ALL_FILTER_OPTION.value ? null : (nextValue as number))
+      mode={mode}
+      value={
+        mode === 'multiple'
+          ? value === null
+            ? []
+            : Array.isArray(value)
+              ? value
+              : [value]
+          : Array.isArray(value)
+            ? (value[0] ?? ALL_FILTER_OPTION.value)
+            : (value ?? ALL_FILTER_OPTION.value)
       }
+      onChange={(nextValue) => {
+        if (mode === 'multiple') {
+          const arr = Array.isArray(nextValue) ? nextValue : [nextValue]
+          const filtered = arr.filter((v) => v !== ALL_FILTER_OPTION.value)
+          onChange(filtered.length > 0 ? (filtered as number[]) : null)
+        } else {
+          onChange(nextValue === ALL_FILTER_OPTION.value ? null : (nextValue as number))
+        }
+      }}
       options={options}
       size="small"
       style={{ width: '100%' }}

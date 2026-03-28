@@ -26,7 +26,8 @@ export interface ResolveLeaderLineLayoutResult {
   points: [[number, number], [number, number]]
 }
 
-const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value))
+const clamp = (value: number, min: number, max: number): number =>
+  Math.max(min, Math.min(max, value))
 
 export const estimateLabelTextWidth = (text: string): number =>
   Array.from(text).reduce((width, char) => width + (/[\u0000-\u00ff]/.test(char) ? 6.2 : 10.8), 4)
@@ -86,8 +87,7 @@ export const resolveLeaderLineLayout = (
   const lineEndX = input.anchor === 'start' ? textLeft - linePadding : textRight + linePadding
   const distanceToMiddle = Math.abs(lineEndX - input.middleX)
   const elbowOffset = Math.min(elbowPadding, distanceToMiddle / 2)
-  const elbowX =
-    lineEndX - Math.sign(lineEndX - input.middleX || 1) * elbowOffset
+  const elbowX = lineEndX - Math.sign(lineEndX - input.middleX || 1) * elbowOffset
 
   return {
     textWidth,

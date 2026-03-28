@@ -54,7 +54,9 @@ const getQuantile = (values: number[], percentile: number): number => {
   return lowerValue + (upperValue - lowerValue) * (index - lowerIndex)
 }
 
-const getAdaptiveLayerOptions = (pointCount: number): Pick<HeatmapLayerOptions, 'radius' | 'blur'> => {
+const getAdaptiveLayerOptions = (
+  pointCount: number
+): Pick<HeatmapLayerOptions, 'radius' | 'blur'> => {
   if (pointCount >= 18000) {
     return { radius: 10, blur: 8 }
   }

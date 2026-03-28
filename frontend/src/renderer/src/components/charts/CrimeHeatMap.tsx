@@ -34,15 +34,18 @@ const HeatLayer = ({ data }: { data: HeatMapProps['heatData'] }): null => {
   const layerRef = useRef<L.Layer | null>(null)
   const { theme } = useThemeMode()
   const mapTheme = useMemo(() => getMapTheme(theme), [theme])
-  
+
   const layerModel = useMemo(() => {
     const model = buildHeatmapLayerModel(data)
     if (model.options) {
       // Overwrite the default gradient from buildHeatmapLayerModel with the theme gradient
-      model.options.gradient = mapTheme.heatGradient.reduce((acc, color, index, arr) => {
-        acc[index / (arr.length - 1)] = color
-        return acc
-      }, {} as Record<number, string>)
+      model.options.gradient = mapTheme.heatGradient.reduce(
+        (acc, color, index, arr) => {
+          acc[index / (arr.length - 1)] = color
+          return acc
+        },
+        {} as Record<number, string>
+      )
     }
     return model
   }, [data, mapTheme])
@@ -56,12 +59,14 @@ const HeatLayer = ({ data }: { data: HeatMapProps['heatData'] }): null => {
       map.removeLayer(layerRef.current)
     }
 
-    layerRef.current = (L as typeof L & {
-      heatLayer: (
-        items: Array<[number, number, number]>,
-        options: Record<string, unknown>
-      ) => L.Layer
-    })
+    layerRef.current = (
+      L as typeof L & {
+        heatLayer: (
+          items: Array<[number, number, number]>,
+          options: Record<string, unknown>
+        ) => L.Layer
+      }
+    )
       .heatLayer(layerModel.points, layerModel.options)
       .addTo(map)
 
@@ -117,10 +122,7 @@ const CrimeHeatMap: React.FC<HeatMapProps> = ({ heatData, districtData, onDistri
     }
   }
 
-  const onEachFeature = (
-    feature: { properties?: { dist_num?: string } },
-    layer: L.Layer
-  ): void => {
+  const onEachFeature = (feature: { properties?: { dist_num?: string } }, layer: L.Layer): void => {
     const districtNum = feature.properties?.dist_num
     const pathLayer = layer as L.Path
 
@@ -145,7 +147,11 @@ const CrimeHeatMap: React.FC<HeatMapProps> = ({ heatData, districtData, onDistri
       <MapContainer
         center={center}
         zoom={11}
-        style={{ height: '100%', width: '100%', background: theme === 'dark' ? '#0e1320' : '#e6f4ff' }}
+        style={{
+          height: '100%',
+          width: '100%',
+          background: theme === 'dark' ? '#0e1320' : '#e6f4ff'
+        }}
         zoomControl={true}
       >
         <TileLayer

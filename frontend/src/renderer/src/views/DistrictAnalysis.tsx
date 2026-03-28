@@ -12,7 +12,7 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { t } from '../i18n'
 import { normalizeSeriesData, type NormalizedChartResult } from '../utils/chartData'
 import { translateLocationType } from '../utils/locationTypeMap'
-import { buildAnalyticsFilterParams } from '../utils/filterParams'
+import { buildAnalyticsFilterParams, singleNumber } from '../utils/filterParams'
 
 const DistrictAnalysis: React.FC = () => {
   const { filters } = useGlobalFilters()
@@ -60,11 +60,11 @@ const DistrictAnalysis: React.FC = () => {
       const [districtRes, locationRes] = await Promise.all([
         analyticsApi.getDistrictsComparison({
           ...debouncedRequestParams,
-          limit: 20,
+          limit: 20
         }),
         analyticsApi.getLocationTypes({
           ...debouncedRequestParams,
-          limit: 15,
+          limit: 15
         })
       ])
 
@@ -86,9 +86,7 @@ const DistrictAnalysis: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [
-    debouncedRequestParams,
-  ])
+  }, [debouncedRequestParams])
 
   useEffect(() => {
     let cancelled = false
@@ -156,7 +154,7 @@ const DistrictAnalysis: React.FC = () => {
                 series={buildSeriesWithCurrent(
                   districtResult.data,
                   districtComparison.series,
-                  filters.year
+                  singleNumber(filters.year)
                 )}
               />
             </DataStatePanel>
@@ -183,16 +181,17 @@ const DistrictAnalysis: React.FC = () => {
               onRetry={() => void fetchData()}
             >
               <BarChart
-                data={locationResult.data}
+                data={locationResult.data.slice(0, 10)}
                 xField="location_description"
                 yField="count"
                 yFieldLabel="案件数量"
-                height={350}
+                height={450}
+                layout="horizontal"
                 labelTranslator={translateLocationType}
                 series={buildSeriesWithCurrent(
-                  locationResult.data,
-                  locationComparison.series,
-                  filters.year
+                  locationResult.data.slice(0, 10),
+                  locationComparison.series.map((s) => ({ ...s, data: s.data.slice(0, 10) })),
+                  singleNumber(filters.year)
                 )}
               />
             </DataStatePanel>

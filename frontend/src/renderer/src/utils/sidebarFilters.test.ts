@@ -23,7 +23,7 @@ describe('sidebarFilters', () => {
   })
 
   it('formats english dimension options into Chinese labels', () => {
-    expect(formatBeatOptionLabel('111')).toBe('警区 111')
+    expect(formatBeatOptionLabel('111')).toBe('111')
     expect(formatWardOptionLabel(22)).toBe('第 22 选区')
     expect(formatCommunityAreaOptionLabel(5)).toBe('社区 5')
   })

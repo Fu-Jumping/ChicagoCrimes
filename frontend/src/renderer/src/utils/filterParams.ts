@@ -1,7 +1,33 @@
 import type { GlobalFilters } from '../contexts/globalFiltersState'
 
+export const singleNumber = (v: number | number[] | null | undefined): number | null => {
+  if (v === null || v === undefined) return null
+  return Array.isArray(v) ? (v[0] ?? null) : v
+}
+
+export const isSingleNumber = (v: number | number[] | null | undefined): v is number =>
+  typeof v === 'number'
+
+export const singleString = (v: string | string[] | null | undefined): string | null => {
+  if (v === null || v === undefined) return null
+  return Array.isArray(v) ? (v[0] ?? null) : v
+}
+
+export const formatFilterValue = (
+  v: string | number | boolean | string[] | number[] | boolean[] | null | undefined
+): string => {
+  if (v === null || v === undefined) return '未设置'
+  if (Array.isArray(v)) return v.length === 0 ? '未设置' : v.join(', ')
+  return String(v)
+}
+
 const isRedundantFullYearRange = (filters: GlobalFilters): boolean => {
-  if (filters.year === null || !filters.startDate || !filters.endDate) {
+  if (
+    filters.year === null ||
+    Array.isArray(filters.year) ||
+    !filters.startDate ||
+    !filters.endDate
+  ) {
     return false
   }
 
@@ -12,7 +38,8 @@ const isRedundantFullYearRange = (filters: GlobalFilters): boolean => {
 
 export const buildAnalyticsFilterParams = (
   filters: GlobalFilters
-): Record<string, string | number | boolean | undefined> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Record<string, any> => {
   const omitDateRange = isRedundantFullYearRange(filters)
 
   return {

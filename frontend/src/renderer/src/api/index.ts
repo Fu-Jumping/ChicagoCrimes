@@ -282,8 +282,22 @@ export const subscribeRequestHistory = (listener: RequestHistoryListener): (() =
 }
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
-  timeout: 60000
+  baseURL: 'http://127.0.0.1:8000/api/v1',
+  timeout: 60000,
+  paramsSerializer: {
+    serialize: (params: Record<string, unknown>): string => {
+      const sp = new URLSearchParams()
+      for (const [key, value] of Object.entries(params)) {
+        if (value === null || value === undefined) continue
+        if (Array.isArray(value)) {
+          value.forEach((item) => sp.append(key, String(item)))
+        } else {
+          sp.append(key, String(value))
+        }
+      }
+      return sp.toString()
+    }
+  }
 })
 
 api.interceptors.request.use((config) => {
@@ -449,15 +463,13 @@ export const analyticsApi = {
     get<Record<string, unknown>[]>('/analytics/types/arrest_rate', params),
   getFilterOptions: (params?: Record<string, unknown>) =>
     get<FilterOptionsResponse>('/analytics/filters/options', params),
-  getGeoHeatmap: (params?: GeoAnalyticsParams): Promise<{ lat: number; lng: number; count: number }[]> =>
-    getData<{ lat: number; lng: number; count: number }[]>('/analytics/geo/heatmap', params),
-  getGeoDistricts: (
+  getGeoHeatmap: (
     params?: GeoAnalyticsParams
-  ): Promise<{ district: string; count: number }[]> =>
+  ): Promise<{ lat: number; lng: number; count: number }[]> =>
+    getData<{ lat: number; lng: number; count: number }[]>('/analytics/geo/heatmap', params),
+  getGeoDistricts: (params?: GeoAnalyticsParams): Promise<{ district: string; count: number }[]> =>
     getData<{ district: string; count: number }[]>('/analytics/geo/districts', params),
-  warmupAppData: async (
-    onProgress?: (snapshot: WarmupProgressSnapshot) => void
-  ): Promise<void> => {
+  warmupAppData: async (onProgress?: (snapshot: WarmupProgressSnapshot) => void): Promise<void> => {
     const stages: Array<{ key: string; label: string; run: () => Promise<unknown> }> = [
       {
         key: 'overview',
@@ -502,7 +514,8 @@ export const analyticsApi = {
       {
         key: 'map',
         label: '预加载地图热力与分区数据',
-        run: () => Promise.allSettled([analyticsApi.getGeoHeatmap(), analyticsApi.getGeoDistricts()])
+        run: () =>
+          Promise.allSettled([analyticsApi.getGeoHeatmap(), analyticsApi.getGeoDistricts()])
       }
     ]
 

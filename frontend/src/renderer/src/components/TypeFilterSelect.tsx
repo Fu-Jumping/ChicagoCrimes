@@ -5,11 +5,12 @@ import { translateCrimeType } from '../utils/crimeTypeMap'
 import { ALL_FILTER_OPTION } from '../utils/sidebarFilters'
 
 interface TypeFilterSelectProps {
-  value: string | null
-  onChange: (value: string | null) => void
+  value: string | string[] | null
+  onChange: (value: string | string[] | null) => void
+  mode?: 'multiple'
 }
 
-const TypeFilterSelect: React.FC<TypeFilterSelectProps> = ({ value, onChange }) => {
+const TypeFilterSelect: React.FC<TypeFilterSelectProps> = ({ value, onChange, mode }) => {
   const [types, setTypes] = useState<{ label: string; value: string }[]>([ALL_FILTER_OPTION])
   const [loading, setLoading] = useState(false)
 
@@ -35,13 +36,30 @@ const TypeFilterSelect: React.FC<TypeFilterSelectProps> = ({ value, onChange }) 
 
   return (
     <Select
+      mode={mode}
       showSearch={false}
       loading={loading}
       size="small"
-      value={value ?? ALL_FILTER_OPTION.value}
-      onChange={(nextValue) =>
-        onChange(nextValue === ALL_FILTER_OPTION.value ? null : nextValue)
+      value={
+        mode === 'multiple'
+          ? value === null
+            ? []
+            : Array.isArray(value)
+              ? value
+              : [value]
+          : Array.isArray(value)
+            ? (value[0] ?? ALL_FILTER_OPTION.value)
+            : (value ?? ALL_FILTER_OPTION.value)
       }
+      onChange={(nextValue) => {
+        if (mode === 'multiple') {
+          const arr = Array.isArray(nextValue) ? nextValue : [nextValue]
+          const filtered = arr.filter((v) => v !== ALL_FILTER_OPTION.value)
+          onChange(filtered.length > 0 ? filtered : null)
+        } else {
+          onChange(nextValue === ALL_FILTER_OPTION.value ? null : nextValue)
+        }
+      }}
       options={types}
       style={{ width: '100%', cursor: 'pointer' }}
       className="glow-select"

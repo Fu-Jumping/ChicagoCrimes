@@ -20,7 +20,7 @@ import {
   type NormalizedChartResult
 } from '../utils/chartData'
 import { translateCrimeType } from '../utils/crimeTypeMap'
-import { buildAnalyticsFilterParams } from '../utils/filterParams'
+import { buildAnalyticsFilterParams, singleNumber, formatFilterValue } from '../utils/filterParams'
 
 interface ChartState {
   loading: boolean
@@ -42,15 +42,14 @@ const Dashboard: React.FC = () => {
   const [activeDistrict, setActiveDistrict] = useState<string | null>(null)
   const [lastChartEvent, setLastChartEvent] = useState<ChartInteractionEvent | null>(null)
 
-  const isYearSelected = filters.year !== null
+  const hasYearFilter = filters.year !== null
   const requestParams = useMemo(() => buildAnalyticsFilterParams(filters), [filters])
   const debouncedRequestParams = useDebouncedValue(requestParams, 160)
-  const debouncedYear =
-    typeof debouncedRequestParams.year === 'number' ? debouncedRequestParams.year : null
+  const debouncedYear = singleNumber(debouncedRequestParams.year as number | number[] | null)
 
   const trendComparison = useChartComparison({
     fetchFn: (year) =>
-      filters.year
+      hasYearFilter
         ? analyticsApi.getMonthlyTrend({
             ...debouncedRequestParams,
             year
@@ -60,16 +59,16 @@ const Dashboard: React.FC = () => {
             start_year: year,
             end_year: year
           }),
-    xField: filters.year ? 'month' : 'year',
+    xField: hasYearFilter ? 'month' : 'year',
     yField: 'count',
-    fallbackLabel: filters.year ? t('common.unknownMonth') : t('common.unknownYear')
+    fallbackLabel: hasYearFilter ? t('common.unknownMonth') : t('common.unknownYear')
   })
 
   const districtComparison = useChartComparison({
     fetchFn: (year) =>
       analyticsApi.getDistrictsComparison({
-        year,
         ...debouncedRequestParams,
+        year,
         limit: 10
       }),
     xField: 'district',
@@ -82,10 +81,10 @@ const Dashboard: React.FC = () => {
     setTypeState((prev) => ({ ...prev, loading: true, error: null }))
     setDistrictState((prev) => ({ ...prev, loading: true, error: null }))
 
-    const trendPromise = debouncedYear
+    const trendPromise = hasYearFilter
       ? analyticsApi.getMonthlyTrend({
           ...debouncedRequestParams,
-          year: debouncedYear
+          year: debouncedYear || 2022
         })
       : analyticsApi.getYearlyTrend(debouncedRequestParams)
 
@@ -93,7 +92,7 @@ const Dashboard: React.FC = () => {
       trendPromise,
       analyticsApi.getTypesProportion({
         ...debouncedRequestParams,
-        limit: 5,
+        limit: 5
       }),
       analyticsApi.getDistrictsComparison({
         ...debouncedRequestParams,
@@ -102,8 +101,8 @@ const Dashboard: React.FC = () => {
     ])
 
     if (trendResult.status === 'fulfilled') {
-      const xField = debouncedYear ? 'month' : 'year'
-      const fallbackLabel = debouncedYear ? t('common.unknownMonth') : t('common.unknownYear')
+      const xField = hasYearFilter ? 'month' : 'year'
+      const fallbackLabel = hasYearFilter ? t('common.unknownMonth') : t('common.unknownYear')
       const normalized = normalizeSeriesData(
         trendResult.value.data as GenericRow[],
         xField,
@@ -150,10 +149,7 @@ const Dashboard: React.FC = () => {
         result: { data: [], downgradedCount: 0 }
       })
     }
-  }, [
-    debouncedRequestParams,
-    debouncedYear
-  ])
+  }, [debouncedRequestParams, debouncedYear, hasYearFilter])
 
   useEffect(() => {
     let cancelled = false
@@ -196,13 +192,18 @@ const Dashboard: React.FC = () => {
   const eventValue =
     lastChartEvent?.dimension === 'primary_type' ? translateCrimeType(rawEventValue) : rawEventValue
 
-  const translatedType = filters.primaryType ? translateCrimeType(filters.primaryType) : ''
-  const trendCardTitle = isYearSelected
-    ? `${filters.year} 年月度趋势 ${translatedType ? `// ${translatedType}` : ''}`
+  const translatedType = filters.primaryType
+    ? Array.isArray(filters.primaryType)
+      ? filters.primaryType.map(translateCrimeType).join(', ')
+      : translateCrimeType(filters.primaryType)
+    : ''
+  const yearDisplay = formatFilterValue(filters.year)
+  const trendCardTitle = hasYearFilter
+    ? `${yearDisplay} 年月度趋势 ${translatedType ? `// ${translatedType}` : ''}`
     : `${t('pages.dashboard.yearlyCard')} ${translatedType ? `// ${translatedType}` : ''}`
 
-  const trendXField = isYearSelected ? 'month' : 'year'
-  const trendChartId = isYearSelected ? 'dashboard-monthly-trend' : 'dashboard-yearly-trend'
+  const trendXField = hasYearFilter ? 'month' : 'year'
+  const trendChartId = hasYearFilter ? 'dashboard-monthly-trend' : 'dashboard-yearly-trend'
 
   const buildSeriesWithCurrent = (
     currentData: Record<string, unknown>[],
@@ -268,7 +269,7 @@ const Dashboard: React.FC = () => {
                 series={buildSeriesWithCurrent(
                   trendState.result.data,
                   trendComparison.series,
-                  filters.year
+                  singleNumber(filters.year)
                 )}
               />
             </DataStatePanel>
@@ -277,7 +278,7 @@ const Dashboard: React.FC = () => {
         <Col span={12}>
           <InsightCard
             eyebrow="类型结构"
-            title={`${t('pages.dashboard.typeCard')} ${filters.year ? `// ${filters.year}` : ''}`}
+            title={t('pages.dashboard.typeCard')}
             description="聚焦当前筛选下案件类型的头部构成。"
           >
             <DataStatePanel
@@ -301,7 +302,7 @@ const Dashboard: React.FC = () => {
         <Col span={12}>
           <InsightCard
             eyebrow="空间分布"
-            title={`${t('pages.dashboard.districtCard')} ${filters.year ? `// ${filters.year}` : ''}`}
+            title={t('pages.dashboard.districtCard')}
             description="对比分区案件量，并联动高亮当前聚焦区域。"
             extra={
               <ComparisonSelect
@@ -330,7 +331,7 @@ const Dashboard: React.FC = () => {
                 series={buildSeriesWithCurrent(
                   districtState.result.data,
                   districtComparison.series,
-                  filters.year
+                  singleNumber(filters.year)
                 )}
               />
             </DataStatePanel>

@@ -29,9 +29,7 @@ describe('MapView', () => {
     vi.spyOn(analyticsApi, 'getGeoHeatmap').mockResolvedValue([
       { lat: 41.88, lng: -87.63, count: 20 }
     ])
-    vi.spyOn(analyticsApi, 'getGeoDistricts').mockResolvedValue([
-      { district: '001', count: 20 }
-    ])
+    vi.spyOn(analyticsApi, 'getGeoDistricts').mockResolvedValue([{ district: '001', count: 20 }])
   })
 
   afterEach(() => {

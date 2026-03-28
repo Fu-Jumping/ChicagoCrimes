@@ -30,10 +30,7 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ startDate, endDate, o
       value={value}
       onChange={handleChange}
       format="YYYY-MM-DD"
-      placeholder={[
-        cn(0x5f00, 0x59cb, 0x65e5, 0x671f),
-        cn(0x7ed3, 0x675f, 0x65e5, 0x671f)
-      ]}
+      placeholder={[cn(0x5f00, 0x59cb, 0x65e5, 0x671f), cn(0x7ed3, 0x675f, 0x65e5, 0x671f)]}
       size="small"
       style={{ width: '100%' }}
       allowClear

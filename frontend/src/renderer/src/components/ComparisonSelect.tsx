@@ -4,7 +4,7 @@ import { Select } from 'antd'
 interface ComparisonSelectProps {
   value: number[]
   onChange: (years: number[]) => void
-  excludeYear?: number | null
+  excludeYear?: number | number[] | null
   maxCount?: number
 }
 
@@ -19,9 +19,15 @@ const ComparisonSelect: React.FC<ComparisonSelectProps> = ({
   excludeYear,
   maxCount = 4
 }) => {
-  const filteredOptions = excludeYear
-    ? yearOptions.filter((o) => o.value !== excludeYear)
-    : yearOptions
+  const excludeSet = new Set(
+    excludeYear === null || excludeYear === undefined
+      ? []
+      : Array.isArray(excludeYear)
+        ? excludeYear
+        : [excludeYear]
+  )
+  const filteredOptions =
+    excludeSet.size > 0 ? yearOptions.filter((o) => !excludeSet.has(o.value)) : yearOptions
 
   return (
     <Select

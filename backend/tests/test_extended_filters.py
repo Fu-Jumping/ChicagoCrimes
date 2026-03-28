@@ -89,13 +89,13 @@ class ExtendedFiltersTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         kwargs = captured["kwargs"]
-        self.assertEqual(kwargs["month"], 2)
-        self.assertEqual(kwargs["beat"], "0711")
-        self.assertEqual(kwargs["ward"], 11)
-        self.assertEqual(kwargs["community_area"], 25)
-        self.assertEqual(kwargs["district"], 7)
-        self.assertTrue(kwargs["arrest"])
-        self.assertFalse(kwargs["domestic"])
+        self.assertEqual(kwargs["month"], [2])
+        self.assertEqual(kwargs["beat"], ["0711"])
+        self.assertEqual(kwargs["ward"], [11])
+        self.assertEqual(kwargs["community_area"], [25])
+        self.assertEqual(kwargs["district"], [7])
+        self.assertEqual(kwargs["arrest"], [True])
+        self.assertEqual(kwargs["domestic"], [False])
 
     def test_geo_heatmap_route_passes_shared_extended_filters(self):
         captured: dict[str, object] = {}
@@ -125,14 +125,14 @@ class ExtendedFiltersTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         kwargs = captured["kwargs"]
-        self.assertEqual(kwargs["month"], 4)
-        self.assertEqual(kwargs["beat"], "111")
-        self.assertEqual(kwargs["ward"], 22)
-        self.assertEqual(kwargs["community_area"], 33)
-        self.assertEqual(kwargs["district"], 9)
-        self.assertFalse(kwargs["arrest"])
-        self.assertTrue(kwargs["domestic"])
-        self.assertEqual(kwargs["primary_type"], "BATTERY")
+        self.assertEqual(kwargs["month"], [4])
+        self.assertEqual(kwargs["beat"], ["111"])
+        self.assertEqual(kwargs["ward"], [22])
+        self.assertEqual(kwargs["community_area"], [33])
+        self.assertEqual(kwargs["district"], [9])
+        self.assertEqual(kwargs["arrest"], [False])
+        self.assertEqual(kwargs["domestic"], [True])
+        self.assertEqual(kwargs["primary_type"], ["BATTERY"])
 
     def test_filter_options_route_returns_expected_shape(self):
         def fake_get_filter_options(*args, **kwargs):

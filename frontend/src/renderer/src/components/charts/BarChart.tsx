@@ -24,6 +24,7 @@ interface BarChartProps {
   series?: ChartSeries[]
   width?: number | string
   height?: number
+  layout?: 'vertical' | 'horizontal'
 }
 
 const identity = (v: string): string => v
@@ -39,7 +40,8 @@ const BarChart: React.FC<BarChartProps> = ({
   yFieldLabel,
   series: externalSeries,
   width = '100%',
-  height = 300
+  height = 300,
+  layout = 'vertical'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const { containerRef, containerSize } = useChartContainerSize()
@@ -87,12 +89,15 @@ const BarChart: React.FC<BarChartProps> = ({
     d3.select(containerRef.current).selectAll<HTMLDivElement, null>('.chart-tooltip').remove()
     if (!canDraw) return
 
-    const margin = { top: isMultiSeries ? 44 : 36, right: 30, bottom: 46, left: 60 }
+    const margin =
+      layout === 'horizontal'
+        ? { top: isMultiSeries ? 44 : 20, right: 30, bottom: 30, left: 120 }
+        : { top: isMultiSeries ? 44 : 36, right: 30, bottom: 46, left: 60 }
     const innerWidth = currentWidth - margin.left - margin.right
     const innerHeight = height - margin.top - margin.bottom
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
-    
+
     const defs = svg.append('defs')
     const tooltip = d3
       .select(containerRef.current)
@@ -122,8 +127,6 @@ const BarChart: React.FC<BarChartProps> = ({
     }
     const xDomain = Array.from(xDomainSet)
 
-    const x = d3.scaleBand().domain(xDomain).range([0, innerWidth]).padding(0.1)
-
     let yMax = 0
     for (const s of visibleSeries) {
       for (const d of s.data) {
@@ -131,61 +134,106 @@ const BarChart: React.FC<BarChartProps> = ({
         if (v > yMax) yMax = v
       }
     }
-    const y = d3
-      .scaleLinear()
-      .domain([0, yMax || 1])
-      .nice()
-      .range([innerHeight, 0])
 
-    const maxTicks = Math.max(1, Math.floor(innerWidth / 72))
-    const tickStep = Math.max(1, Math.ceil(xDomain.length / maxTicks))
-    const tickValues = xDomain.filter(
-      (_, index) => index % tickStep === 0 || index === xDomain.length - 1
-    )
+    let x: d3.ScaleBand<string> | d3.ScaleLinear<number, number>
+    let y: d3.ScaleLinear<number, number> | d3.ScaleBand<string>
 
-    const xAxis = g
-      .append('g')
-      .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x).tickValues(tickValues))
-    xAxis
-      .selectAll('text')
-      .attr('transform', 'translate(0,0)')
-      .style('text-anchor', 'middle')
-      .text((d) => {
-        const translated = labelTranslator(String(d))
-        return translated.length > 8 ? translated.substring(0, 6) + '...' : translated
-      })
-      .append('title')
-      .text((d) => labelTranslator(String(d)))
+    if (layout === 'horizontal') {
+      x = d3
+        .scaleLinear()
+        .domain([0, yMax || 1])
+        .nice()
+        .range([0, innerWidth])
+      y = d3.scaleBand().domain(xDomain).range([0, innerHeight]).padding(0.15)
+    } else {
+      x = d3.scaleBand().domain(xDomain).range([0, innerWidth]).padding(0.1)
+      y = d3
+        .scaleLinear()
+        .domain([0, yMax || 1])
+        .nice()
+        .range([innerHeight, 0])
+    }
 
-    const yAxis = g.append('g').call(d3.axisLeft(y))
+    if (layout === 'horizontal') {
+      const xAxis = g
+        .append('g')
+        .attr('transform', `translate(0,${innerHeight})`)
+        .call(d3.axisBottom(x as d3.ScaleLinear<number, number>).ticks(5))
 
-    // Add horizontal grid lines
-    yAxis
-      .selectAll('.tick line')
-      .clone()
-      .attr('x2', innerWidth)
-      .attr('stroke', chartTheme.gridStroke)
-      .attr('stroke-opacity', 1)
-      .attr('stroke-dasharray', '3,3')
+      xAxis
+        .selectAll('.tick line')
+        .clone()
+        .attr('y2', -innerHeight)
+        .attr('stroke', chartTheme.gridStroke)
+        .attr('stroke-opacity', 1)
+        .attr('stroke-dasharray', '3,3')
+
+      const yAxis = g.append('g').call(d3.axisLeft(y as d3.ScaleBand<string>))
+      yAxis
+        .selectAll('text')
+        .text((d) => {
+          const translated = labelTranslator(String(d))
+          return translated.length > 8 ? translated.substring(0, 7) + '...' : translated
+        })
+        .append('title')
+        .text((d) => labelTranslator(String(d)))
+    } else {
+      const maxTicks = Math.max(1, Math.floor(innerWidth / 72))
+      const tickStep = xDomain.length <= 20 ? 1 : Math.max(1, Math.ceil(xDomain.length / maxTicks))
+      const tickValues = xDomain.filter(
+        (_, index) => index % tickStep === 0 || index === xDomain.length - 1
+      )
+
+      const xAxis = g
+        .append('g')
+        .attr('transform', `translate(0,${innerHeight})`)
+        .call(d3.axisBottom(x as d3.ScaleBand<string>).tickValues(tickValues))
+
+      const shouldRotate = false
+
+      xAxis
+        .selectAll('text')
+        .attr('transform', shouldRotate ? 'rotate(-35)' : 'translate(0,0)')
+        .style('text-anchor', shouldRotate ? 'end' : 'middle')
+        .attr('dx', shouldRotate ? '-0.5em' : '0')
+        .attr('dy', shouldRotate ? '0.5em' : '0.71em')
+        .text((d) => {
+          const translated = labelTranslator(String(d))
+          return translated.length > 8 ? translated.substring(0, 6) + '...' : translated
+        })
+        .append('title')
+        .text((d) => labelTranslator(String(d)))
+
+      const yAxis = g.append('g').call(d3.axisLeft(y as d3.ScaleLinear<number, number>))
+
+      yAxis
+        .selectAll('.tick line')
+        .clone()
+        .attr('x2', innerWidth)
+        .attr('stroke', chartTheme.gridStroke)
+        .attr('stroke-opacity', 1)
+        .attr('stroke-dasharray', '3,3')
+    }
 
     if (isMultiSeries) {
       const seriesCount = visibleSeries.length
-      const bandwidth = x.bandwidth()
+      const bandwidth = (
+        layout === 'horizontal' ? (y as d3.ScaleBand<string>) : (x as d3.ScaleBand<string>)
+      ).bandwidth()
       const subBarWidth = seriesCount > 0 ? bandwidth / seriesCount : bandwidth
 
       visibleSeries.forEach((series, seriesIdx) => {
         const gradientId = `bar-grad-${chartId}-${seriesIdx}`
-        const gradient = defs.append('linearGradient')
+        const gradient = defs
+          .append('linearGradient')
           .attr('id', gradientId)
           .attr('x1', '0%')
           .attr('y1', '0%')
-          .attr('x2', '0%')
-          .attr('y2', '100%')
-        gradient.append('stop')
-          .attr('offset', '0%')
-          .attr('stop-color', series.color)
-        gradient.append('stop')
+          .attr('x2', layout === 'horizontal' ? '100%' : '0%')
+          .attr('y2', layout === 'horizontal' ? '0%' : '100%')
+        gradient.append('stop').attr('offset', '0%').attr('stop-color', series.color)
+        gradient
+          .append('stop')
           .attr('offset', '100%')
           .attr('stop-color', series.color)
           .attr('stop-opacity', 0.6)
@@ -197,11 +245,31 @@ const BarChart: React.FC<BarChartProps> = ({
           .enter()
           .append('rect')
           .attr('class', `bar-s${seriesIdx}`)
-          .attr('x', (k) => x(k)! + seriesIdx * subBarWidth)
-          .attr('y', (k) => y(Number(dataMap.get(k)![yField] ?? 0)))
-          .attr('width', Math.max(subBarWidth - 1, 1))
+          .attr('x', (k) =>
+            layout === 'horizontal' ? 1 : (x as d3.ScaleBand<string>)(k)! + seriesIdx * subBarWidth
+          )
+          .attr('y', (k) =>
+            layout === 'horizontal'
+              ? (y as d3.ScaleBand<string>)(k)! + seriesIdx * subBarWidth
+              : (y as d3.ScaleLinear<number, number>)(Number(dataMap.get(k)![yField] ?? 0))
+          )
+          .attr('width', (k) =>
+            layout === 'horizontal'
+              ? Math.max(
+                  (x as d3.ScaleLinear<number, number>)(Number(dataMap.get(k)![yField] ?? 0)),
+                  0
+                )
+              : Math.max(subBarWidth - 1, 1)
+          )
           .attr('height', (k) =>
-            Math.max(innerHeight - y(Number(dataMap.get(k)![yField] ?? 0)) - 1, 0)
+            layout === 'horizontal'
+              ? Math.max(subBarWidth - 1, 1)
+              : Math.max(
+                  innerHeight -
+                    (y as d3.ScaleLinear<number, number>)(Number(dataMap.get(k)![yField] ?? 0)) -
+                    1,
+                  0
+                )
           )
           .attr('fill', `url(#${gradientId})`)
           .attr('rx', 2)
@@ -226,18 +294,18 @@ const BarChart: React.FC<BarChartProps> = ({
       })
     } else {
       const singleVisible = visibleSeries.length > 0
-      
+
       const gradientId = `bar-grad-${chartId}-single`
-      const gradient = defs.append('linearGradient')
+      const gradient = defs
+        .append('linearGradient')
         .attr('id', gradientId)
         .attr('x1', '0%')
         .attr('y1', '0%')
-        .attr('x2', '0%')
-        .attr('y2', '100%')
-      gradient.append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', chartTheme.palette[0])
-      gradient.append('stop')
+        .attr('x2', layout === 'horizontal' ? '100%' : '0%')
+        .attr('y2', layout === 'horizontal' ? '0%' : '100%')
+      gradient.append('stop').attr('offset', '0%').attr('stop-color', chartTheme.palette[0])
+      gradient
+        .append('stop')
         .attr('offset', '100%')
         .attr('stop-color', chartTheme.palette[0])
         .attr('stop-opacity', 0.6)
@@ -247,14 +315,37 @@ const BarChart: React.FC<BarChartProps> = ({
         .enter()
         .append('rect')
         .attr('class', 'bar')
-        .attr('x', (d) => x(String(d[xField]))!)
-        .attr('y', (d) => (singleVisible ? y(Number(d[yField])) : y(0)))
-        .attr('width', x.bandwidth())
+        .attr('x', (d) =>
+          layout === 'horizontal' ? 1 : (x as d3.ScaleBand<string>)(String(d[xField]))!
+        )
+        .attr('y', (d) =>
+          layout === 'horizontal'
+            ? (y as d3.ScaleBand<string>)(String(d[xField]))!
+            : singleVisible
+              ? (y as d3.ScaleLinear<number, number>)(Number(d[yField]))
+              : (y as d3.ScaleLinear<number, number>)(0)
+        )
+        .attr('width', (d) =>
+          layout === 'horizontal'
+            ? singleVisible
+              ? Math.max((x as d3.ScaleLinear<number, number>)(Number(d[yField])), 0)
+              : 0
+            : (x as d3.ScaleBand<string>).bandwidth()
+        )
         .attr('height', (d) =>
-          singleVisible ? Math.max(innerHeight - y(Number(d[yField])) - 1, 0) : 0
+          layout === 'horizontal'
+            ? (y as d3.ScaleBand<string>).bandwidth()
+            : singleVisible
+              ? Math.max(
+                  innerHeight - (y as d3.ScaleLinear<number, number>)(Number(d[yField])) - 1,
+                  0
+                )
+              : 0
         )
         .attr('fill', (d) =>
-          activeValue !== null && String(d[xField]) === String(activeValue) ? chartTheme.activeHighlight : `url(#${gradientId})`
+          activeValue !== null && String(d[xField]) === String(activeValue)
+            ? chartTheme.activeHighlight
+            : `url(#${gradientId})`
         )
         .attr('rx', 2)
         .attr('ry', 2)

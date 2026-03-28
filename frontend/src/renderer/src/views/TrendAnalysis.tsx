@@ -12,7 +12,7 @@ import { useChartComparison } from '../hooks/useChartComparison'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { t } from '../i18n'
 import { normalizeSeriesData, type NormalizedChartResult } from '../utils/chartData'
-import { buildAnalyticsFilterParams } from '../utils/filterParams'
+import { buildAnalyticsFilterParams, singleNumber } from '../utils/filterParams'
 
 const TrendAnalysis: React.FC = () => {
   const { filters } = useGlobalFilters()
@@ -32,8 +32,7 @@ const TrendAnalysis: React.FC = () => {
   })
   const requestParams = useMemo(() => buildAnalyticsFilterParams(filters), [filters])
   const debouncedRequestParams = useDebouncedValue(requestParams, 160)
-  const debouncedYear =
-    typeof debouncedRequestParams.year === 'number' ? debouncedRequestParams.year : null
+  const debouncedYear = singleNumber(debouncedRequestParams.year as number | number[] | null)
 
   const monthlyComparison = useChartComparison({
     fetchFn: (year) =>
@@ -100,10 +99,7 @@ const TrendAnalysis: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [
-    debouncedRequestParams,
-    debouncedYear
-  ])
+  }, [debouncedRequestParams, debouncedYear])
 
   useEffect(() => {
     let cancelled = false
@@ -175,7 +171,7 @@ const TrendAnalysis: React.FC = () => {
                 series={buildSeriesWithCurrent(
                   monthlyResult.data,
                   monthlyComparison.series,
-                  filters.year || 2022
+                  singleNumber(filters.year) || 2022
                 )}
               />
             </DataStatePanel>
@@ -210,7 +206,7 @@ const TrendAnalysis: React.FC = () => {
                 series={buildSeriesWithCurrent(
                   weeklyResult.data,
                   weeklyComparison.series,
-                  filters.year
+                  singleNumber(filters.year)
                 )}
               />
             </DataStatePanel>
@@ -245,7 +241,7 @@ const TrendAnalysis: React.FC = () => {
                 series={buildSeriesWithCurrent(
                   hourlyResult.data,
                   hourlyComparison.series,
-                  filters.year
+                  singleNumber(filters.year)
                 )}
               />
             </DataStatePanel>

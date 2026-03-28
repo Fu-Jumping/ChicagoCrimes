@@ -97,10 +97,10 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
   </div>
   <div
     class="app-route-backdrop"
-    style="--route-bg-image: url(/src/renderer/src/assets/backgrounds/overview.jpg);"
+    style="--route-backdrop-image: url(/src/renderer/src/assets/backgrounds/overview.jpg);"
   >
     <div
-      class="app-route-backdrop__image"
+      class="app-route-backdrop__image route-backdrop-transition"
     />
     <div
       class="app-route-backdrop__overlay"
@@ -111,160 +111,63 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
     <div
       class="urban-oracle-layout"
     >
-      <header
-        class="urban-oracle-header"
+      <aside
+        class="urban-sidebar "
       >
         <div
-          class="header-left"
-        >
-          <div
-            class="brand-panel"
-          >
-            <div
-              aria-hidden="true"
-              class="brand-panel__mark"
-            >
-              <span
-                class="brand-panel__mark-cell brand-panel__mark-cell--primary"
-              />
-              <span
-                class="brand-panel__mark-cell"
-              />
-              <span
-                class="brand-panel__mark-cell"
-              />
-              <span
-                class="brand-panel__mark-cell brand-panel__mark-cell--accent"
-              />
-            </div>
-            <div
-              class="brand-panel__copy"
-            >
-              <span
-                class="brand-panel__eyebrow"
-              >
-                CHICAGO CRIME VISUAL INTELLIGENCE
-              </span>
-              <span
-                class="brand-panel__title"
-              >
-                芝加哥犯罪可视化
-              </span>
-            </div>
-          </div>
-          <div
-            class="header-logo-divider"
-          />
-          <nav
-            class="header-nav"
-          >
-            <span
-              class="nav-item active"
-            >
-              综合总览
-            </span>
-            <span
-              class="nav-item "
-            >
-              趋势分析
-            </span>
-            <span
-              class="nav-item "
-            >
-              类型分析
-            </span>
-            <span
-              class="nav-item "
-            >
-              区域分析
-            </span>
-            <span
-              class="nav-item "
-            >
-              空间地图
-            </span>
-          </nav>
-        </div>
-        <div
-          class="header-right"
+          class="urban-sidebar__toggle-row"
         >
           <button
-            aria-label="导出报告"
-            class="icon-btn"
+            aria-label="折叠左侧边栏"
+            class="ant-btn css-dev-only-do-not-override-1t2537o css-var-root ant-btn-text ant-btn-color-default ant-btn-variant-text ant-btn-sm ant-btn-icon-only sidebar-toggle-btn"
+            data-testid="sidebar-collapse-toggle"
+            type="button"
           >
             <span
-              aria-label="printer"
-              class="anticon anticon-printer"
-              role="img"
+              class="ant-btn-icon"
             >
-              <svg
-                aria-hidden="true"
-                data-icon="printer"
-                fill="currentColor"
-                focusable="false"
-                height="1em"
-                viewBox="64 64 896 896"
-                width="1em"
+              <span
+                aria-label="menu-fold"
+                class="anticon anticon-menu-fold"
+                role="img"
               >
-                <path
-                  d="M820 436h-40c-4.4 0-8 3.6-8 8v40c0 4.4 3.6 8 8 8h40c4.4 0 8-3.6 8-8v-40c0-4.4-3.6-8-8-8zm32-104H732V120c0-4.4-3.6-8-8-8H300c-4.4 0-8 3.6-8 8v212H172c-44.2 0-80 35.8-80 80v328c0 17.7 14.3 32 32 32h168v132c0 4.4 3.6 8 8 8h424c4.4 0 8-3.6 8-8V772h168c17.7 0 32-14.3 32-32V412c0-44.2-35.8-80-80-80zM360 180h304v152H360V180zm304 664H360V568h304v276zm200-140H732V500H292v204H160V412c0-6.6 5.4-12 12-12h680c6.6 0 12 5.4 12 12v292z"
-                />
-              </svg>
-            </span>
-          </button>
-          <button
-            aria-label="切换为浅色主题"
-            class="icon-btn"
-            title="切换为浅色主题"
-          >
-            <span
-              aria-label="bulb"
-              class="anticon anticon-bulb"
-              role="img"
-            >
-              <svg
-                aria-hidden="true"
-                data-icon="bulb"
-                fill="currentColor"
-                focusable="false"
-                height="1em"
-                viewBox="64 64 896 896"
-                width="1em"
-              >
-                <path
-                  d="M632 888H392c-4.4 0-8 3.6-8 8v32c0 17.7 14.3 32 32 32h192c17.7 0 32-14.3 32-32v-32c0-4.4-3.6-8-8-8zM512 64c-181.1 0-328 146.9-328 328 0 121.4 66 227.4 164 284.1V792c0 17.7 14.3 32 32 32h264c17.7 0 32-14.3 32-32V676.1c98-56.7 164-162.7 164-284.1 0-181.1-146.9-328-328-328zm127.9 549.8L604 634.6V752H420V634.6l-35.9-20.8C305.4 568.3 256 484.5 256 392c0-141.4 114.6-256 256-256s256 114.6 256 256c0 92.5-49.4 176.3-128.1 221.8z"
-                />
-              </svg>
+                <svg
+                  aria-hidden="true"
+                  data-icon="menu-fold"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 000 13.8z"
+                  />
+                </svg>
+              </span>
             </span>
           </button>
         </div>
-      </header>
-      <div
-        class="urban-oracle-body"
-      >
-        <aside
-          class="urban-sidebar "
+        <div
+          class="urban-sidebar__scroll"
         >
-          <div
-            class="urban-sidebar__toggle-row"
+          <section
+            class="sidebar-page-section sidebar-panel"
           >
-            <button
-              aria-label="折叠左侧边栏"
-              class="ant-btn css-dev-only-do-not-override-1t2537o css-var-root ant-btn-text ant-btn-color-default ant-btn-variant-text ant-btn-sm ant-btn-icon-only sidebar-toggle-btn"
-              data-testid="sidebar-collapse-toggle"
-              type="button"
+            <div
+              class="sidebar-page-heading"
             >
-              <span
-                class="ant-btn-icon"
+              <div
+                class="sidebar-page-badge"
               >
                 <span
-                  aria-label="menu-fold"
-                  class="anticon anticon-menu-fold"
+                  aria-label="filter"
+                  class="anticon anticon-filter"
                   role="img"
                 >
                   <svg
                     aria-hidden="true"
-                    data-icon="menu-fold"
+                    data-icon="filter"
                     fill="currentColor"
                     focusable="false"
                     height="1em"
@@ -272,77 +175,45 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
                     width="1em"
                   >
                     <path
-                      d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 000 13.8z"
+                      d="M880.1 154H143.9c-24.5 0-39.8 26.7-27.5 48L349 597.4V838c0 17.7 14.2 32 31.8 32h262.4c17.6 0 31.8-14.3 31.8-32V597.4L907.7 202c12.2-21.3-3.1-48-27.6-48zM603.4 798H420.6V642h182.9v156zm9.6-236.6l-9.5 16.6h-183l-9.5-16.6L212.7 226h598.6L613 561.4z"
                     />
                   </svg>
                 </span>
-              </span>
-            </button>
-          </div>
-          <div
-            class="urban-sidebar__scroll"
-          >
-            <section
-              class="sidebar-page-section sidebar-panel"
-            >
+              </div>
               <div
-                class="sidebar-page-heading"
+                class="sidebar-page-copy"
               >
                 <div
-                  class="sidebar-page-badge"
+                  class="sidebar-page-label"
                 >
-                  <span
-                    aria-label="appstore"
-                    class="anticon anticon-appstore"
-                    role="img"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      data-icon="appstore"
-                      fill="currentColor"
-                      focusable="false"
-                      height="1em"
-                      viewBox="64 64 896 896"
-                      width="1em"
-                    >
-                      <path
-                        d="M464 144H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H212V212h200v200zm452-268H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H612V212h200v200zM464 544H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H212V612h200v200zm452-268H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H612V612h200v200z"
-                      />
-                    </svg>
-                  </span>
+                  GLOBAL FILTERS
                 </div>
                 <div
-                  class="sidebar-page-copy"
+                  class="sidebar-page-title"
                 >
-                  <div
-                    class="sidebar-page-label"
-                  >
-                    当前视图
-                  </div>
-                  <div
-                    class="sidebar-page-title"
-                  >
-                    综合总览
-                  </div>
-                  <div
-                    class="sidebar-page-eyebrow"
-                  >
-                    城市态势总览
-                  </div>
+                  全局数据筛选
+                </div>
+                <div
+                  class="sidebar-page-eyebrow"
+                >
+                  多维度联动控制
                 </div>
               </div>
-              <p
-                class="sidebar-page-desc"
-              >
-                总览芝加哥犯罪数据的趋势、类型结构与区域对比。
-              </p>
-            </section>
-            <section
-              class="sidebar-filter-section sidebar-filter-section--group sidebar-panel"
+            </div>
+            <p
+              class="sidebar-page-desc"
             >
-              <div
-                class="sidebar-filter-section__header"
-              >
+              通过以下条件过滤整个应用的数据分析范围，所有图表与地图将实时联动更新。
+            </p>
+          </section>
+          <section
+            class="sidebar-filter-section sidebar-filter-section--group sidebar-panel"
+          >
+            <div
+              class="sidebar-filter-section__header"
+              style="display: flex; justify-content: space-between; align-items: center;"
+            >
+              <div>
                 <div
                   class="sidebar-section-label"
                 >
@@ -350,227 +221,260 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
                 </div>
                 <p
                   class="sidebar-section-desc"
+                  style="margin-bottom: 0px;"
                 >
                   限定当前分析的时间窗口。
                 </p>
               </div>
               <div
-                class="sidebar-filter-grid"
+                style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"
               >
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
+                <span
+                  style="font-size: 10px; color: var(--text-secondary);"
+                >
+                  多选模式
+                </span>
+                <button
+                  aria-checked="false"
+                  class="ant-switch ant-switch-small css-dev-only-do-not-override-1t2537o css-var-root"
+                  role="switch"
+                  type="button"
                 >
                   <div
-                    class="sidebar-filter-label"
+                    class="ant-switch-handle"
+                  />
+                  <span
+                    class="ant-switch-inner"
                   >
-                    分析年份
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
-                  data-testid="global-month-filter"
-                >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    月份筛选
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--full"
-                >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    日期范围
-                  </div>
-                  <div
-                    class="ant-picker ant-picker-range ant-picker-small ant-picker-outlined css-dev-only-do-not-override-1t2537o css-var-root ant-picker-css-var"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-picker-input ant-picker-input-start"
-                    >
-                      <input
-                        aria-invalid="false"
-                        autocomplete="off"
-                        date-range="start"
-                        placeholder="开始日期"
-                        readonly=""
-                        size="12"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-picker-range-separator"
-                    >
-                      <span
-                        aria-label="to"
-                        class="ant-picker-separator"
-                      >
-                        <span
-                          aria-label="swap-right"
-                          class="anticon anticon-swap-right"
-                          role="img"
-                        >
-                          <svg
-                            aria-hidden="true"
-                            data-icon="swap-right"
-                            fill="currentColor"
-                            focusable="false"
-                            height="1em"
-                            viewBox="0 0 1024 1024"
-                            width="1em"
-                          >
-                            <path
-                              d="M873.1 596.2l-164-208A32 32 0 00684 376h-64.8c-6.7 0-10.4 7.7-6.3 13l144.3 183H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h695.9c26.8 0 41.7-30.8 25.2-51.8z"
-                            />
-                          </svg>
-                        </span>
-                      </span>
-                    </div>
-                    <div
-                      class="ant-picker-input ant-picker-input-end"
-                    >
-                      <input
-                        aria-invalid="false"
-                        autocomplete="off"
-                        date-range="end"
-                        placeholder="结束日期"
-                        readonly=""
-                        size="12"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-picker-active-bar"
-                      style="position: absolute; width: 0px;"
+                    <span
+                      class="ant-switch-inner-checked"
                     />
                     <span
-                      class="ant-picker-suffix"
+                      class="ant-switch-inner-unchecked"
+                    />
+                  </span>
+                </button>
+              </div>
+            </div>
+            <div
+              class="sidebar-filter-grid"
+            >
+              <div
+                class="sidebar-filter-group sidebar-filter-group--half"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  分析年份
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sidebar-filter-group sidebar-filter-group--half"
+                data-testid="global-month-filter"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  月份筛选
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sidebar-filter-group sidebar-filter-group--full"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  日期范围
+                </div>
+                <div
+                  class="ant-picker ant-picker-range ant-picker-small ant-picker-outlined css-dev-only-do-not-override-1t2537o css-var-root ant-picker-css-var"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-picker-input ant-picker-input-start"
+                  >
+                    <input
+                      aria-invalid="false"
+                      autocomplete="off"
+                      date-range="start"
+                      placeholder="开始日期"
+                      readonly=""
+                      size="12"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-picker-range-separator"
+                  >
+                    <span
+                      aria-label="to"
+                      class="ant-picker-separator"
                     >
                       <span
-                        aria-label="calendar"
-                        class="anticon anticon-calendar"
+                        aria-label="swap-right"
+                        class="anticon anticon-swap-right"
                         role="img"
                       >
                         <svg
                           aria-hidden="true"
-                          data-icon="calendar"
+                          data-icon="swap-right"
                           fill="currentColor"
                           focusable="false"
                           height="1em"
-                          viewBox="64 64 896 896"
+                          viewBox="0 0 1024 1024"
                           width="1em"
                         >
                           <path
-                            d="M880 184H712v-64c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v64H384v-64c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v64H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V460h656v380zM184 392V256h128v48c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-48h256v48c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-48h128v136H184z"
+                            d="M873.1 596.2l-164-208A32 32 0 00684 376h-64.8c-6.7 0-10.4 7.7-6.3 13l144.3 183H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h695.9c26.8 0 41.7-30.8 25.2-51.8z"
                           />
                         </svg>
                       </span>
                     </span>
                   </div>
+                  <div
+                    class="ant-picker-input ant-picker-input-end"
+                  >
+                    <input
+                      aria-invalid="false"
+                      autocomplete="off"
+                      date-range="end"
+                      placeholder="结束日期"
+                      readonly=""
+                      size="12"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-picker-active-bar"
+                    style="position: absolute; width: 0px;"
+                  />
+                  <span
+                    class="ant-picker-suffix"
+                  >
+                    <span
+                      aria-label="calendar"
+                      class="anticon anticon-calendar"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="calendar"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M880 184H712v-64c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v64H384v-64c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v64H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V460h656v380zM184 392V256h128v48c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-48h256v48c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-48h128v136H184z"
+                        />
+                      </svg>
+                    </span>
+                  </span>
                 </div>
               </div>
-            </section>
-            <section
-              class="sidebar-filter-section sidebar-filter-section--group sidebar-panel"
+            </div>
+          </section>
+          <section
+            class="sidebar-filter-section sidebar-filter-section--group sidebar-panel"
+          >
+            <div
+              class="sidebar-filter-section__header"
+              style="display: flex; justify-content: space-between; align-items: center;"
             >
-              <div
-                class="sidebar-filter-section__header"
-              >
+              <div>
                 <div
                   class="sidebar-section-label"
                 >
@@ -578,187 +482,220 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
                 </div>
                 <p
                   class="sidebar-section-desc"
+                  style="margin-bottom: 0px;"
                 >
                   筛选具体案件类型与事件属性。
                 </p>
               </div>
               <div
-                class="sidebar-filter-grid"
+                style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"
+              >
+                <span
+                  style="font-size: 10px; color: var(--text-secondary);"
+                >
+                  多选模式
+                </span>
+                <button
+                  aria-checked="false"
+                  class="ant-switch ant-switch-small css-dev-only-do-not-override-1t2537o css-var-root"
+                  role="switch"
+                  type="button"
+                >
+                  <div
+                    class="ant-switch-handle"
+                  />
+                  <span
+                    class="ant-switch-inner"
+                  >
+                    <span
+                      class="ant-switch-inner-checked"
+                    />
+                    <span
+                      class="ant-switch-inner-unchecked"
+                    />
+                  </span>
+                </button>
+              </div>
+            </div>
+            <div
+              class="sidebar-filter-grid"
+            >
+              <div
+                class="sidebar-filter-group sidebar-filter-group--full"
               >
                 <div
-                  class="sidebar-filter-group sidebar-filter-group--full"
+                  class="sidebar-filter-label"
                 >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    案件类型
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined glow-select css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%; cursor: pointer;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
+                  案件类型
                 </div>
                 <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
+                  class="ant-select ant-select-sm ant-select-outlined glow-select css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%; cursor: pointer;"
                 >
                   <div
-                    class="sidebar-filter-label"
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
                   >
-                    是否逮捕
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
                   </div>
                   <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
+                    class="ant-select-suffix"
                   >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
                     >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
                       >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
-                  data-testid="global-domestic-filter"
-                >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    是否家暴
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
                   </div>
                 </div>
               </div>
-            </section>
-            <section
-              class="sidebar-filter-section sidebar-filter-section--group sidebar-panel"
-            >
               <div
-                class="sidebar-filter-section__header"
+                class="sidebar-filter-group sidebar-filter-group--half"
               >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  是否逮捕
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sidebar-filter-group sidebar-filter-group--half"
+                data-testid="global-domestic-filter"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  是否家暴
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section
+            class="sidebar-filter-section sidebar-filter-section--group sidebar-panel"
+          >
+            <div
+              class="sidebar-filter-section__header"
+              style="display: flex; justify-content: space-between; align-items: center;"
+            >
+              <div>
                 <div
                   class="sidebar-section-label"
                 >
@@ -766,394 +703,521 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
                 </div>
                 <p
                   class="sidebar-section-desc"
+                  style="margin-bottom: 0px;"
                 >
                   按分区、警区、选区和社区限定观察范围。
                 </p>
               </div>
               <div
-                class="sidebar-filter-grid"
+                style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"
               >
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
-                >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    分区筛选
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
-                  data-testid="global-beat-filter"
-                >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    警区筛选
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
-                  data-testid="global-ward-filter"
-                >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    选区筛选
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  class="sidebar-filter-group sidebar-filter-group--half"
-                  data-testid="global-community-area-filter"
-                >
-                  <div
-                    class="sidebar-filter-label"
-                  >
-                    社区筛选
-                  </div>
-                  <div
-                    class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
-                    style="width: 100%;"
-                  >
-                    <div
-                      class="ant-select-content ant-select-content-has-value"
-                      title="全部"
-                    >
-                      全部
-                      <input
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                        aria-haspopup="listbox"
-                        autocomplete="off"
-                        class="ant-select-input"
-                        id="test-id"
-                        readonly=""
-                        role="combobox"
-                        type="search"
-                        value=""
-                      />
-                    </div>
-                    <div
-                      class="ant-select-suffix"
-                    >
-                      <span
-                        aria-label="down"
-                        class="anticon anticon-down"
-                        role="img"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          data-icon="down"
-                          fill="currentColor"
-                          focusable="false"
-                          height="1em"
-                          viewBox="64 64 896 896"
-                          width="1em"
-                        >
-                          <path
-                            d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-            <section
-              class="sidebar-filter-section sidebar-filter-section--summary sidebar-panel"
-            >
-              <div
-                class="sidebar-section-label"
-              >
-                筛选摘要
-              </div>
-              <div
-                class="sidebar-summary-card"
-              >
-                <div
-                  class="sidebar-summary-metric"
-                >
-                  <span
-                    class="sidebar-summary-metric__label"
-                  >
-                    当前已启用筛选
-                  </span>
-                  <span
-                    class="sidebar-summary-metric__value"
-                  >
-                    0
-                  </span>
-                </div>
-                <div
-                  class="sidebar-summary-list"
-                >
-                  <div
-                    class="sidebar-summary-item"
-                  >
-                    <span
-                      class="sidebar-summary-item__label"
-                    >
-                      时间范围
-                    </span>
-                    <span
-                      class="sidebar-summary-item__value"
-                    >
-                      未限制时间范围
-                    </span>
-                  </div>
-                  <div
-                    class="sidebar-summary-item"
-                  >
-                    <span
-                      class="sidebar-summary-item__label"
-                    >
-                      事件条件
-                    </span>
-                    <span
-                      class="sidebar-summary-item__value"
-                    >
-                      未限定案件条件
-                    </span>
-                  </div>
-                  <div
-                    class="sidebar-summary-item"
-                  >
-                    <span
-                      class="sidebar-summary-item__label"
-                    >
-                      空间范围
-                    </span>
-                    <span
-                      class="sidebar-summary-item__value"
-                    >
-                      未限定空间范围
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <p
-                class="sidebar-summary-empty"
-              >
-                当前使用全量数据观察基线态势。
-              </p>
-            </section>
-            <section
-              class="sidebar-datasource-section sidebar-panel"
-            >
-              <div
-                class="sidebar-section-label sidebar-section-label--with-action"
-              >
-                <span>
-                  数据来源
-                </span>
-                <a
-                  href="https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2"
-                  rel="noopener noreferrer"
-                  style="color: inherit;"
-                  target="_blank"
-                >
-                  <span
-                    aria-label="link"
-                    class="anticon anticon-link"
-                    role="img"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      data-icon="link"
-                      fill="currentColor"
-                      focusable="false"
-                      height="1em"
-                      viewBox="64 64 896 896"
-                      width="1em"
-                    >
-                      <path
-                        d="M574 665.4a8.03 8.03 0 00-11.3 0L446.5 781.6c-53.8 53.8-144.6 59.5-204 0-59.5-59.5-53.8-150.2 0-204l116.2-116.2c3.1-3.1 3.1-8.2 0-11.3l-39.8-39.8a8.03 8.03 0 00-11.3 0L191.4 526.5c-84.6 84.6-84.6 221.5 0 306s221.5 84.6 306 0l116.2-116.2c3.1-3.1 3.1-8.2 0-11.3L574 665.4zm258.6-474c-84.6-84.6-221.5-84.6-306 0L410.3 307.6a8.03 8.03 0 000 11.3l39.7 39.7c3.1 3.1 8.2 3.1 11.3 0l116.2-116.2c53.8-53.8 144.6-59.5 204 0 59.5 59.5 53.8 150.2 0 204L665.3 562.6a8.03 8.03 0 000 11.3l39.8 39.8c3.1 3.1 8.2 3.1 11.3 0l116.2-116.2c84.5-84.6 84.5-221.5 0-306.1zM610.1 372.3a8.03 8.03 0 00-11.3 0L372.3 598.7a8.03 8.03 0 000 11.3l39.6 39.6c3.1 3.1 8.2 3.1 11.3 0l226.4-226.4c3.1-3.1 3.1-8.2 0-11.3l-39.5-39.6z"
-                      />
-                    </svg>
-                  </span>
-                </a>
-              </div>
-              <div
-                class="sidebar-datasource-name"
-              >
-                芝加哥犯罪数据库
-              </div>
-              <div
-                class="sidebar-datasource-years"
-              >
-                2001 — 2023
-              </div>
-              <div
-                class="sidebar-status-row"
-              >
-                <div
-                  class="statusbar-dot"
-                />
                 <span
-                  class="sidebar-status-text"
+                  style="font-size: 10px; color: var(--text-secondary);"
                 >
-                  系统在线
+                  多选模式
+                </span>
+                <button
+                  aria-checked="false"
+                  class="ant-switch ant-switch-small css-dev-only-do-not-override-1t2537o css-var-root"
+                  role="switch"
+                  type="button"
+                >
+                  <div
+                    class="ant-switch-handle"
+                  />
+                  <span
+                    class="ant-switch-inner"
+                  >
+                    <span
+                      class="ant-switch-inner-checked"
+                    />
+                    <span
+                      class="ant-switch-inner-unchecked"
+                    />
+                  </span>
+                </button>
+              </div>
+            </div>
+            <div
+              class="sidebar-filter-grid"
+            >
+              <div
+                class="sidebar-filter-group sidebar-filter-group--half"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  分区筛选
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sidebar-filter-group sidebar-filter-group--half"
+                data-testid="global-beat-filter"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  警区筛选
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sidebar-filter-group sidebar-filter-group--half"
+                data-testid="global-ward-filter"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  选区筛选
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="sidebar-filter-group sidebar-filter-group--half"
+                data-testid="global-community-area-filter"
+              >
+                <div
+                  class="sidebar-filter-label"
+                >
+                  社区筛选
+                </div>
+                <div
+                  class="ant-select ant-select-sm ant-select-outlined css-var-root ant-select-css-var css-dev-only-do-not-override-1t2537o ant-select-single ant-select-show-arrow"
+                  style="width: 100%;"
+                >
+                  <div
+                    class="ant-select-content ant-select-content-has-value"
+                    title="全部"
+                  >
+                    全部
+                    <input
+                      aria-autocomplete="list"
+                      aria-expanded="false"
+                      aria-haspopup="listbox"
+                      autocomplete="off"
+                      class="ant-select-input"
+                      id="test-id"
+                      readonly=""
+                      role="combobox"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="ant-select-suffix"
+                  >
+                    <span
+                      aria-label="down"
+                      class="anticon anticon-down"
+                      role="img"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        data-icon="down"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"
+                        />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section
+            class="sidebar-filter-section sidebar-filter-section--summary sidebar-panel"
+          >
+            <div
+              class="sidebar-section-label"
+            >
+              筛选摘要
+            </div>
+            <div
+              class="sidebar-summary-card"
+            >
+              <div
+                class="sidebar-summary-metric"
+              >
+                <span
+                  class="sidebar-summary-metric__label"
+                >
+                  当前已启用筛选
+                </span>
+                <span
+                  class="sidebar-summary-metric__value"
+                >
+                  0
                 </span>
               </div>
               <div
-                class="sidebar-datasource-meta"
+                class="sidebar-summary-list"
               >
-                <span>
-                  当前主题：
-                  深色
+                <div
+                  class="sidebar-summary-item"
+                >
+                  <span
+                    class="sidebar-summary-item__label"
+                  >
+                    时间范围
+                  </span>
+                  <span
+                    class="sidebar-summary-item__value"
+                  >
+                    未限制时间范围
+                  </span>
+                </div>
+                <div
+                  class="sidebar-summary-item"
+                >
+                  <span
+                    class="sidebar-summary-item__label"
+                  >
+                    事件条件
+                  </span>
+                  <span
+                    class="sidebar-summary-item__value"
+                  >
+                    未限定案件条件
+                  </span>
+                </div>
+                <div
+                  class="sidebar-summary-item"
+                >
+                  <span
+                    class="sidebar-summary-item__label"
+                  >
+                    空间范围
+                  </span>
+                  <span
+                    class="sidebar-summary-item__value"
+                  >
+                    未限定空间范围
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p
+              class="sidebar-summary-empty"
+            >
+              当前使用全量数据观察基线态势。
+            </p>
+          </section>
+          <section
+            class="sidebar-datasource-section sidebar-panel"
+          >
+            <div
+              class="sidebar-section-label sidebar-section-label--with-action"
+            >
+              <span>
+                数据来源
+              </span>
+              <a
+                href="https://www.kaggle.com/datasets/utkarshx27/crimes-2001-to-present"
+                rel="noopener noreferrer"
+                style="color: inherit;"
+                target="_blank"
+              >
+                <span
+                  aria-label="link"
+                  class="anticon anticon-link"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="link"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M574 665.4a8.03 8.03 0 00-11.3 0L446.5 781.6c-53.8 53.8-144.6 59.5-204 0-59.5-59.5-53.8-150.2 0-204l116.2-116.2c3.1-3.1 3.1-8.2 0-11.3l-39.8-39.8a8.03 8.03 0 00-11.3 0L191.4 526.5c-84.6 84.6-84.6 221.5 0 306s221.5 84.6 306 0l116.2-116.2c3.1-3.1 3.1-8.2 0-11.3L574 665.4zm258.6-474c-84.6-84.6-221.5-84.6-306 0L410.3 307.6a8.03 8.03 0 000 11.3l39.7 39.7c3.1 3.1 8.2 3.1 11.3 0l116.2-116.2c53.8-53.8 144.6-59.5 204 0 59.5 59.5 53.8 150.2 0 204L665.3 562.6a8.03 8.03 0 000 11.3l39.8 39.8c3.1 3.1 8.2 3.1 11.3 0l116.2-116.2c84.5-84.6 84.5-221.5 0-306.1zM610.1 372.3a8.03 8.03 0 00-11.3 0L372.3 598.7a8.03 8.03 0 000 11.3l39.6 39.6c3.1 3.1 8.2 3.1 11.3 0l226.4-226.4c3.1-3.1 3.1-8.2 0-11.3l-39.5-39.6z"
+                    />
+                  </svg>
                 </span>
-                <span>
-                  当前年份：
-                  未设置
+              </a>
+            </div>
+            <div
+              class="sidebar-datasource-name"
+            >
+              芝加哥犯罪数据库
+            </div>
+            <div
+              class="sidebar-datasource-years"
+            >
+              2001 — 2023
+            </div>
+            <div
+              class="sidebar-status-row"
+            >
+              <div
+                class="statusbar-dot"
+              />
+              <span
+                class="sidebar-status-text"
+              >
+                系统在线
+              </span>
+            </div>
+            <div
+              class="sidebar-datasource-meta"
+            >
+              <span>
+                当前主题：
+                深色
+              </span>
+              <span>
+                当前年份：
+                未设置
+              </span>
+            </div>
+          </section>
+        </div>
+      </aside>
+      <div
+        class="urban-oracle-body"
+      >
+        <header
+          class="urban-oracle-header"
+        >
+          <div
+            class="header-left"
+          >
+            <nav
+              class="header-nav"
+            >
+              <span
+                class="nav-item active"
+              >
+                综合总览
+              </span>
+              <span
+                class="nav-item "
+              >
+                趋势分析
+              </span>
+              <span
+                class="nav-item "
+              >
+                类型分析
+              </span>
+              <span
+                class="nav-item "
+              >
+                区域分析
+              </span>
+              <span
+                class="nav-item "
+              >
+                空间地图
+              </span>
+              <button
+                aria-label="切换为浅色主题"
+                class="icon-btn"
+                style="margin-left: -8px;"
+                title="切换为浅色主题"
+              >
+                <span
+                  aria-label="bulb"
+                  class="anticon anticon-bulb"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="bulb"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M632 888H392c-4.4 0-8 3.6-8 8v32c0 17.7 14.3 32 32 32h192c17.7 0 32-14.3 32-32v-32c0-4.4-3.6-8-8-8zM512 64c-181.1 0-328 146.9-328 328 0 121.4 66 227.4 164 284.1V792c0 17.7 14.3 32 32 32h264c17.7 0 32-14.3 32-32V676.1c98-56.7 164-162.7 164-284.1 0-181.1-146.9-328-328-328zm127.9 549.8L604 634.6V752H420V634.6l-35.9-20.8C305.4 568.3 256 484.5 256 392c0-141.4 114.6-256 256-256s256 114.6 256 256c0 92.5-49.4 176.3-128.1 221.8z"
+                    />
+                  </svg>
+                </span>
+              </button>
+            </nav>
+          </div>
+          <div
+            class="header-right"
+          >
+            <div
+              class="brand-panel"
+            >
+              <div
+                class="brand-panel__copy"
+              >
+                <span
+                  class="brand-panel__eyebrow"
+                >
+                  CHICAGO CRIME VISUAL INTELLIGENCE
+                </span>
+                <span
+                  class="brand-panel__title"
+                >
+                  芝加哥犯罪可视化
                 </span>
               </div>
-            </section>
+              <img
+                alt="Logo"
+                class="brand-panel__logo"
+                src="/src/renderer/src/assets/icon.ico"
+              />
+            </div>
+            <div
+              class="header-logo-divider"
+            />
           </div>
-        </aside>
+        </header>
         <main
           class="urban-oracle-main"
         >
           <div
-            class="urban-oracle-content"
+            class="urban-oracle-content route-transition"
           >
             <div
               class="view-container"
@@ -1179,20 +1243,36 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
                           <div
                             class="analysis-shell__system-dot"
                           />
-                          <span>
+                          <span
+                            class="analysis-shell__eyebrow-text"
+                          >
                             城市态势总览 // 综合分析页
                           </span>
+                          <div
+                            class="analysis-shell__eyebrow-line"
+                          />
                         </div>
-                        <h2
-                          class="analysis-shell__title"
+                        <div
+                          class="analysis-shell__title-wrapper"
                         >
-                          综合总览
-                        </h2>
-                        <p
-                          class="analysis-shell__subtitle"
-                        >
-                          从时间趋势、类型结构和空间分布三个视角快速建立芝加哥犯罪态势的整体认知。
-                        </p>
+                          <div
+                            class="analysis-shell__title-decorator"
+                          />
+                          <div
+                            class="analysis-shell__title-group"
+                          >
+                            <h2
+                              class="analysis-shell__title"
+                            >
+                              综合总览
+                            </h2>
+                            <p
+                              class="analysis-shell__subtitle"
+                            >
+                              从时间趋势、类型结构和空间分布三个视角快速建立芝加哥犯罪态势的整体认知。
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1346,7 +1426,7 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
                                 <h3
                                   class="analysis-module-card__title"
                                 >
-                                  类型占比（Top 5） 
+                                  类型占比（Top 5）
                                 </h3>
                                 <p
                                   class="analysis-module-card__description"
@@ -1436,7 +1516,7 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
                                 <h3
                                   class="analysis-module-card__title"
                                 >
-                                  分区案件对比 
+                                  分区案件对比
                                 </h3>
                                 <p
                                   class="analysis-module-card__description"

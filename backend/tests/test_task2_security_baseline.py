@@ -38,18 +38,22 @@ class Task2SecurityBaselineTests(unittest.TestCase):
             else:
                 os.environ[key] = value
 
-    def test_database_default_credentials_blocked(self):
+    def test_database_common_credentials_allowed(self):
         os.environ["MYSQL_USER"] = "root"
         os.environ["MYSQL_PASSWORD"] = "123456"
+        os.environ["MYSQL_HOST"] = "127.0.0.1"
+        os.environ["MYSQL_PORT"] = "3306"
         os.environ["MYSQL_DATABASE"] = "chicago_crime"
-        sys.modules.pop("app.database", None)
-        with self.assertRaisesRegex(RuntimeError, "启动阻断"):
-            importlib.import_module("app.database")
+        from app.database import validate_database_runtime_settings
+        settings = validate_database_runtime_settings()
+        self.assertEqual(settings["MYSQL_USER"], "root")
 
-    def test_cors_origin_list_parse_from_env(self):
-        with patch.dict(os.environ, {"CORS_ALLOWED_ORIGINS": " http://localhost:5173,https://app.example.com,http://localhost:5173 "}):
+    def test_cors_origin_list_includes_defaults(self):
+        with patch.dict(os.environ, {"CORS_ALLOWED_ORIGINS": "https://app.example.com"}):
             origins = main.parse_cors_allowed_origins()
-        self.assertEqual(origins, ["http://localhost:5173", "https://app.example.com"])
+        self.assertIn("http://localhost:5173", origins)
+        self.assertIn("file://", origins)
+        self.assertIn("https://app.example.com", origins)
 
     def test_healthz_masks_error_and_keeps_request_id_trace(self):
         client = TestClient(main.app)

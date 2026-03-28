@@ -1,33 +1,35 @@
 import { createContext } from 'react'
 
 export interface GlobalFilters {
-  year: number | null
-  month: number | null
-  primaryType: string | null
+  year: number | number[] | null
+  month: number | number[] | null
+  primaryType: string | string[] | null
   startDate: string | null
   endDate: string | null
-  district: number | null
-  beat: string | null
-  ward: number | null
-  communityArea: number | null
-  arrest: boolean | null
-  domestic: boolean | null
+  district: number | number[] | null
+  beat: string | string[] | null
+  ward: number | number[] | null
+  communityArea: number | number[] | null
+  arrest: boolean | boolean[] | null
+  domestic: boolean | boolean[] | null
 }
 
 export interface GlobalFiltersContextValue {
   filters: GlobalFilters
-  setYear: (year: number | null) => void
-  setMonth: (month: number | null) => void
-  setPrimaryType: (primaryType: string | null) => void
+  setYear: (year: number | number[] | null) => void
+  setMonth: (month: number | number[] | null) => void
+  setPrimaryType: (primaryType: string | string[] | null) => void
   setDateRange: (startDate: string | null, endDate: string | null) => void
-  setDistrict: (district: number | null) => void
-  setBeat: (beat: string | null) => void
-  setWard: (ward: number | null) => void
-  setCommunityArea: (communityArea: number | null) => void
-  setArrest: (arrest: boolean | null) => void
-  setDomestic: (domestic: boolean | null) => void
+  setDistrict: (district: number | number[] | null) => void
+  setBeat: (beat: string | string[] | null) => void
+  setWard: (ward: number | number[] | null) => void
+  setCommunityArea: (communityArea: number | number[] | null) => void
+  setArrest: (arrest: boolean | boolean[] | null) => void
+  setDomestic: (domestic: boolean | boolean[] | null) => void
   clearFilters: () => void
   hasActiveFilters: boolean
+  isMultiSelect: boolean
+  setIsMultiSelect: (isMultiSelect: boolean) => void
 }
 
 export const GlobalFiltersContext = createContext<GlobalFiltersContextValue | undefined>(undefined)

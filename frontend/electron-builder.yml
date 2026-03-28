@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: frontend
+appId: com.chicago-crime.visualization
+productName: 芝加哥犯罪数据可视化
 directories:
   buildResources: build
 files:
@@ -9,12 +9,20 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+extraResources:
+  - from: '../backend/dist/backend'
+    to: 'backend'
+    filter:
+      - '**/*'
 asarUnpack:
   - resources/**
 win:
-  executableName: frontend
+  executableName: ChicagoCrimeViz
+  icon: build/icon.ico
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ChicagoCrimeViz-${version}-setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always

@@ -12,9 +12,9 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy import text
 import uvicorn
 
-from app.routers import analytics
+from app.routers import analytics, setup
 from app.cache import ResponseCache, build_etag
-from app.database import SessionLocal
+from app.database import SessionLocal, is_database_configured
 from app.contracts import CONTRACT_VERSION, API_VERSION
 from app.schemas.crime import ErrorResponseModel
 
@@ -43,10 +43,18 @@ def get_request_id(request: Request) -> str:
 
 def parse_cors_allowed_origins() -> list[str]:
     raw_value = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+    defaults = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "file://",
+    ]
     if not raw_value:
-        return []
+        return defaults
     origins = [item.strip() for item in raw_value.split(",") if item.strip()]
-    return list(dict.fromkeys(origins))
+    merged = list(dict.fromkeys(defaults + origins))
+    return merged
 
 
 def build_error_payload(
@@ -213,16 +221,17 @@ async def attach_request_context(request: Request, call_next):
     log_request(request, response.status_code, duration_ms, cache_status)
     return response
 
-# Configure CORS
+# Configure CORS — local desktop app, backend only listens on localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=parse_cors_allowed_origins(),
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include routers
+app.include_router(setup.router)
 app.include_router(analytics.router)
 
 
@@ -293,13 +302,17 @@ def health_check(request: Request):
     request_id = get_request_id(request)
     db_ok = True
     db_error_code = None
-    try:
-        with SessionLocal() as db:
-            db.execute(text("SELECT 1"))
-    except Exception as exc:
+    if SessionLocal is None:
         db_ok = False
-        db_error_code = "DATABASE_UNAVAILABLE"
-        logger.exception("health_check_database_failed request_id=%s error=%s", request_id, str(exc))
+        db_error_code = "DATABASE_NOT_CONFIGURED"
+    else:
+        try:
+            with SessionLocal() as db:
+                db.execute(text("SELECT 1"))
+        except Exception as exc:
+            db_ok = False
+            db_error_code = "DATABASE_UNAVAILABLE"
+            logger.exception("health_check_database_failed request_id=%s error=%s", request_id, str(exc))
     logger.info("health_check_completed request_id=%s status=%s", request_id, "ok" if db_ok else "degraded")
     dependencies = {
         "database": {"ok": db_ok, "error": db_error_code},
@@ -347,7 +360,8 @@ async def warm_cache():
 
 @app.on_event("startup")
 async def on_startup():
-    asyncio.create_task(warm_cache())
+    if is_database_configured():
+        asyncio.create_task(warm_cache())
 
 
 if __name__ == "__main__":

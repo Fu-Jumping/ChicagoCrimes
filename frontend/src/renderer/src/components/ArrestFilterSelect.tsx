@@ -3,8 +3,9 @@ import { Select } from 'antd'
 import { ALL_FILTER_OPTION } from '../utils/sidebarFilters'
 
 interface ArrestFilterSelectProps {
-  value: boolean | null
-  onChange: (arrest: boolean | null) => void
+  value: boolean | boolean[] | null
+  onChange: (arrest: boolean | boolean[] | null) => void
+  mode?: 'multiple'
 }
 
 const arrestOptions = [
@@ -13,21 +14,45 @@ const arrestOptions = [
   { label: '未逮捕', value: 'false' }
 ]
 
-const ArrestFilterSelect: React.FC<ArrestFilterSelectProps> = ({ value, onChange }) => {
-  const selectValue = value === null ? ALL_FILTER_OPTION.value : String(value)
+const ArrestFilterSelect: React.FC<ArrestFilterSelectProps> = ({ value, onChange, mode }) => {
+  const selectValue =
+    mode === 'multiple'
+      ? Array.isArray(value)
+        ? value.map(String)
+        : value !== null
+          ? [String(value)]
+          : []
+      : value === null
+        ? ALL_FILTER_OPTION.value
+        : Array.isArray(value)
+          ? value.length > 0
+            ? String(value[0])
+            : ALL_FILTER_OPTION.value
+          : String(value)
 
-  const handleChange = (nextValue: string): void => {
-    if (nextValue === ALL_FILTER_OPTION.value) {
-      onChange(null)
-    } else if (nextValue === 'true') {
-      onChange(true)
+  const handleChange = (nextValue: any): void => {
+    if (mode === 'multiple') {
+      const arr = Array.isArray(nextValue) ? nextValue : [nextValue]
+      const filtered = arr.filter((v) => v !== ALL_FILTER_OPTION.value)
+      if (filtered.length === 0) {
+        onChange(null)
+      } else {
+        onChange(filtered.map((v) => v === 'true'))
+      }
     } else {
-      onChange(false)
+      if (nextValue === ALL_FILTER_OPTION.value) {
+        onChange(null)
+      } else if (nextValue === 'true') {
+        onChange(true)
+      } else {
+        onChange(false)
+      }
     }
   }
 
   return (
     <Select
+      mode={mode}
       value={selectValue}
       onChange={handleChange}
       options={arrestOptions}

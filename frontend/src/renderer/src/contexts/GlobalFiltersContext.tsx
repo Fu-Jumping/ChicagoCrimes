@@ -16,46 +16,65 @@ const parsePositiveInteger = (value: string | null): number | null => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
 }
 
-const parseYear = (value: string | null): number | null => parsePositiveInteger(value)
+const parsePositiveIntegerArray = (values: string[]): number | number[] | null => {
+  if (values.length === 0) return null
+  if (values.length === 1) return parsePositiveInteger(values[0])
+  const parsed = values.map(parsePositiveInteger).filter((v): v is number => v !== null)
+  if (parsed.length === 0) return null
+  if (parsed.length === 1) return parsed[0]
+  return parsed
+}
 
-const parseMonth = (value: string | null): number | null => {
-  const parsed = parsePositiveInteger(value)
+const parseStringArray = (values: string[]): string | string[] | null => {
+  if (values.length === 0) return null
+  if (values.length === 1) return values[0].trim() || null
+  const parsed = values.map((v) => v.trim()).filter((v) => v)
+  if (parsed.length === 0) return null
+  if (parsed.length === 1) return parsed[0]
+  return parsed
+}
+
+const parseBooleanArray = (values: string[]): boolean | boolean[] | null => {
+  if (values.length === 0) return null
+  if (values.length === 1) {
+    if (values[0] === 'true') return true
+    if (values[0] === 'false') return false
+    return null
+  }
+  const parsed = values
+    .map((v) => (v === 'true' ? true : v === 'false' ? false : null))
+    .filter((v): v is boolean => v !== null)
+  if (parsed.length === 0) return null
+  if (parsed.length === 1) return parsed[0]
+  return parsed
+}
+
+const parseYear = (values: string[]): number | number[] | null => parsePositiveIntegerArray(values)
+
+const parseMonth = (values: string[]): number | number[] | null => {
+  const parsed = parsePositiveIntegerArray(values)
+  if (Array.isArray(parsed)) {
+    const valid = parsed.filter((p) => p >= 1 && p <= 12)
+    return valid.length === 0 ? null : valid.length === 1 ? valid[0] : valid
+  }
   return parsed !== null && parsed >= 1 && parsed <= 12 ? parsed : null
 }
 
-const parsePrimaryType = (value: string | null): string | null => {
-  const normalized = value?.trim()
-  return normalized ? normalized : null
-}
+const parsePrimaryType = (values: string[]): string | string[] | null => parseStringArray(values)
 
-const parseDistrict = (value: string | null): number | null => {
-  return parsePositiveInteger(value)
-}
+const parseDistrict = (values: string[]): number | number[] | null =>
+  parsePositiveIntegerArray(values)
 
-const parseBeat = (value: string | null): string | null => {
-  const normalized = value?.trim()
-  return normalized ? normalized : null
-}
+const parseBeat = (values: string[]): string | string[] | null => parseStringArray(values)
 
-const parseWard = (value: string | null): number | null => {
-  return parsePositiveInteger(value)
-}
+const parseWard = (values: string[]): number | number[] | null => parsePositiveIntegerArray(values)
 
-const parseCommunityArea = (value: string | null): number | null => {
-  return parsePositiveInteger(value)
-}
+const parseCommunityArea = (values: string[]): number | number[] | null =>
+  parsePositiveIntegerArray(values)
 
-const parseArrest = (value: string | null): boolean | null => {
-  if (value === 'true') return true
-  if (value === 'false') return false
-  return null
-}
+const parseArrest = (values: string[]): boolean | boolean[] | null => parseBooleanArray(values)
 
-const parseDomestic = (value: string | null): boolean | null => {
-  if (value === 'true') return true
-  if (value === 'false') return false
-  return null
-}
+const parseDomestic = (values: string[]): boolean | boolean[] | null => parseBooleanArray(values)
 
 const isValidDateStr = (value: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -65,9 +84,7 @@ const isValidDateStr = (value: string): boolean => {
   const [year, month, day] = value.split('-').map(Number)
   const date = new Date(Date.UTC(year, month - 1, day))
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   )
 }
 
@@ -80,10 +97,10 @@ const parseDateStr = (value: string | null): string | null => {
 const pad = (value: number): string => String(value).padStart(2, '0')
 
 const buildDateRangeForYearMonth = (
-  year: number | null,
-  month: number | null
+  year: number | number[] | null,
+  month: number | number[] | null
 ): { startDate: string | null; endDate: string | null } => {
-  if (year === null) {
+  if (year === null || Array.isArray(year) || Array.isArray(month)) {
     return { startDate: null, endDate: null }
   }
 
@@ -149,7 +166,9 @@ const analyzeDateRange = (
   const endYear = Number(ordered.endDate.slice(0, 4))
   const sameYear = startYear === endYear
   const year = sameYear ? startYear : null
-  const fullMonth = sameYear ? inferMonthFromDateRange(startYear, ordered.startDate, ordered.endDate) : null
+  const fullMonth = sameYear
+    ? inferMonthFromDateRange(startYear, ordered.startDate, ordered.endDate)
+    : null
   const fullYear =
     sameYear &&
     ordered.startDate === `${startYear}-01-01` &&
@@ -167,7 +186,13 @@ const analyzeDateRange = (
 const isSelectorDerivedDateRange = (
   filters: Pick<GlobalFilters, 'year' | 'month' | 'startDate' | 'endDate'>
 ): boolean => {
-  if (filters.year === null || !filters.startDate || !filters.endDate) {
+  if (
+    filters.year === null ||
+    Array.isArray(filters.year) ||
+    Array.isArray(filters.month) ||
+    !filters.startDate ||
+    !filters.endDate
+  ) {
     return false
   }
 
@@ -181,6 +206,10 @@ const isSelectorDerivedDateRange = (
 }
 
 const normalizeTimeFilters = (filters: GlobalFilters): GlobalFilters => {
+  if (Array.isArray(filters.year) || Array.isArray(filters.month)) {
+    return filters
+  }
+
   let startDate = filters.startDate
   let endDate = filters.endDate
 
@@ -196,7 +225,7 @@ const normalizeTimeFilters = (filters: GlobalFilters): GlobalFilters => {
   }
 
   if (!startDate || !endDate) {
-    if (filters.year !== null) {
+    if (filters.year !== null && !Array.isArray(filters.year) && !Array.isArray(filters.month)) {
       const range = buildDateRangeForYearMonth(filters.year, filters.month)
       return {
         ...filters,
@@ -224,7 +253,7 @@ const normalizeTimeFilters = (filters: GlobalFilters): GlobalFilters => {
     }
   }
 
-  if (filters.year !== null) {
+  if (filters.year !== null && !Array.isArray(filters.year)) {
     return {
       ...filters,
       year: rangeInfo.year,
@@ -234,7 +263,7 @@ const normalizeTimeFilters = (filters: GlobalFilters): GlobalFilters => {
     }
   }
 
-  if (filters.month !== null) {
+  if (filters.month !== null && !Array.isArray(filters.month)) {
     if (rangeInfo.fullMonth !== null) {
       return {
         ...filters,
@@ -295,20 +324,21 @@ const normalizeTimeFilters = (filters: GlobalFilters): GlobalFilters => {
 
 export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [isMultiSelect, setIsMultiSelect] = React.useState(false)
 
   const rawFilters = useMemo<GlobalFilters>(
     () => ({
-      year: parseYear(searchParams.get('year')),
-      month: parseMonth(searchParams.get('month')),
-      primaryType: parsePrimaryType(searchParams.get('primary_type')),
+      year: parseYear(searchParams.getAll('year')),
+      month: parseMonth(searchParams.getAll('month')),
+      primaryType: parsePrimaryType(searchParams.getAll('primary_type')),
       startDate: parseDateStr(searchParams.get('start_date')),
       endDate: parseDateStr(searchParams.get('end_date')),
-      district: parseDistrict(searchParams.get('district')),
-      beat: parseBeat(searchParams.get('beat')),
-      ward: parseWard(searchParams.get('ward')),
-      communityArea: parseCommunityArea(searchParams.get('community_area')),
-      arrest: parseArrest(searchParams.get('arrest')),
-      domestic: parseDomestic(searchParams.get('domestic'))
+      district: parseDistrict(searchParams.getAll('district')),
+      beat: parseBeat(searchParams.getAll('beat')),
+      ward: parseWard(searchParams.getAll('ward')),
+      communityArea: parseCommunityArea(searchParams.getAll('community_area')),
+      arrest: parseArrest(searchParams.getAll('arrest')),
+      domestic: parseDomestic(searchParams.getAll('domestic'))
     }),
     [searchParams]
   )
@@ -319,16 +349,15 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
     (nextFilters: Partial<GlobalFilters>) => {
       const nextParams = new URLSearchParams(searchParams)
 
-      const apply = (
-        key: string,
-        current: string | number | boolean | null | undefined,
-        incoming: string | number | boolean | null | undefined
-      ): void => {
+      const apply = (key: string, current: any, incoming: any): void => {
         const value = incoming === undefined ? current : incoming
-        if (value === null || value === undefined) {
-          nextParams.delete(key)
-        } else {
-          nextParams.set(key, String(value))
+        nextParams.delete(key)
+        if (value !== null && value !== undefined) {
+          if (Array.isArray(value)) {
+            value.forEach((v) => nextParams.append(key, String(v)))
+          } else {
+            nextParams.set(key, String(value))
+          }
         }
       }
 
@@ -350,7 +379,16 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
   )
 
   const setYear = useCallback(
-    (year: number | null) => {
+    (year: number | number[] | null) => {
+      if (Array.isArray(year)) {
+        updateSearchParams({
+          year,
+          startDate: null,
+          endDate: null
+        })
+        return
+      }
+
       if (year === null) {
         if (
           filters.year === null ||
@@ -387,8 +425,17 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
   )
 
   const setMonth = useCallback(
-    (month: number | null) => {
-      if (filters.year !== null) {
+    (month: number | number[] | null) => {
+      if (Array.isArray(month)) {
+        updateSearchParams({
+          month,
+          startDate: null,
+          endDate: null
+        })
+        return
+      }
+
+      if (filters.year !== null && !Array.isArray(filters.year)) {
         const range = buildDateRangeForYearMonth(filters.year, month)
         updateSearchParams({
           month,
@@ -413,8 +460,12 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
   )
 
   const setPrimaryType = useCallback(
-    (primaryType: string | null) =>
-      updateSearchParams({ primaryType: parsePrimaryType(primaryType) }),
+    (primaryType: string | string[] | null) =>
+      updateSearchParams({
+        primaryType: Array.isArray(primaryType)
+          ? primaryType
+          : parsePrimaryType([primaryType || ''])
+      }),
     [updateSearchParams]
   )
 
@@ -466,32 +517,33 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
   )
 
   const setDistrict = useCallback(
-    (district: number | null) => updateSearchParams({ district }),
+    (district: number | number[] | null) => updateSearchParams({ district }),
     [updateSearchParams]
   )
 
   const setBeat = useCallback(
-    (beat: string | null) => updateSearchParams({ beat: parseBeat(beat) }),
+    (beat: string | string[] | null) =>
+      updateSearchParams({ beat: Array.isArray(beat) ? beat : parseBeat([beat || '']) }),
     [updateSearchParams]
   )
 
   const setWard = useCallback(
-    (ward: number | null) => updateSearchParams({ ward }),
+    (ward: number | number[] | null) => updateSearchParams({ ward }),
     [updateSearchParams]
   )
 
   const setCommunityArea = useCallback(
-    (communityArea: number | null) => updateSearchParams({ communityArea }),
+    (communityArea: number | number[] | null) => updateSearchParams({ communityArea }),
     [updateSearchParams]
   )
 
   const setArrest = useCallback(
-    (arrest: boolean | null) => updateSearchParams({ arrest }),
+    (arrest: boolean | boolean[] | null) => updateSearchParams({ arrest }),
     [updateSearchParams]
   )
 
   const setDomestic = useCallback(
-    (domestic: boolean | null) => updateSearchParams({ domestic }),
+    (domestic: boolean | boolean[] | null) => updateSearchParams({ domestic }),
     [updateSearchParams]
   )
 
@@ -536,7 +588,9 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
         filters.ward !== null ||
         filters.communityArea !== null ||
         filters.arrest !== null ||
-        filters.domestic !== null
+        filters.domestic !== null,
+      isMultiSelect,
+      setIsMultiSelect
     }),
     [
       clearFilters,
@@ -550,7 +604,9 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
       setMonth,
       setPrimaryType,
       setWard,
-      setYear
+      setYear,
+      isMultiSelect,
+      setIsMultiSelect
     ]
   )
 

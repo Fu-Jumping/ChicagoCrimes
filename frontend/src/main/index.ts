@@ -1,7 +1,43 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, type OpenDialogOptions } from 'electron'
 import { join } from 'path'
+import { spawn, type ChildProcess } from 'child_process'
+import { existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../resources/icon.ico?asset'
+import { setupStore } from './store'
+
+let backendProcess: ChildProcess | null = null
+
+function startBackend(): void {
+  if (is.dev) return  // dev mode: backend is started manually via `python start.py dev`
+
+  // In the packaged installer, backend.exe is copied to resources/backend/ by electron-builder.
+  // process.resourcesPath points to the <install_dir>/resources directory.
+  const backendExe = join(process.resourcesPath, 'backend', 'backend.exe')
+
+  if (!existsSync(backendExe)) {
+    console.error(`[backend] backend.exe not found at ${backendExe}`)
+    return
+  }
+
+  console.log(`[backend] launching ${backendExe}`)
+  const proc = spawn(backendExe, [], {
+    // Tell the backend where to write .env and logs (user-writable AppData)
+    env: {
+      ...process.env,
+      CHICAGO_CRIME_DATA_DIR: app.getPath('userData'),
+    },
+    stdio: 'pipe',
+    windowsHide: true,
+  })
+  backendProcess = proc
+  proc.stdout?.on('data', (d) => console.log(`[backend] ${String(d).trim()}`))
+  proc.stderr?.on('data', (d) => console.warn(`[backend] ${String(d).trim()}`))
+  proc.on('exit', (code) => {
+    console.warn(`[backend] process exited with code ${code}`)
+    backendProcess = null
+  })
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -14,7 +50,7 @@ function createWindow(): void {
     frame: false,
     titleBarStyle: 'hidden',
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -58,6 +94,8 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  startBackend()
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -70,6 +108,50 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  ipcMain.handle('select-csv-file', async () => {
+    const win = BrowserWindow.getFocusedWindow()
+    const dialogOptions: OpenDialogOptions = {
+      title: '选择 crimes CSV 数据文件',
+      properties: ['openFile'],
+      filters: [{ name: 'CSV', extensions: ['csv'] }]
+    }
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions)
+    const filePath = filePaths[0] ?? null
+    let size: number | null = null
+    if (filePath) {
+      try {
+        const fs = await import('fs/promises')
+        const stat = await fs.stat(filePath)
+        size = stat.size
+      } catch {
+        /* ignore */
+      }
+    }
+    return { canceled, path: filePath, size }
+  })
+
+  ipcMain.handle('setup-store-get', () => ({
+    setupCompleted: setupStore.get('setupCompleted'),
+    lastCsvPath: setupStore.get('lastCsvPath')
+  }))
+
+  ipcMain.handle(
+    'setup-store-set',
+    (
+      _event,
+      patch: Partial<{ setupCompleted: boolean; lastCsvPath: string }>
+    ): void => {
+      if (typeof patch.setupCompleted === 'boolean') {
+        setupStore.set('setupCompleted', patch.setupCompleted)
+      }
+      if (typeof patch.lastCsvPath === 'string') {
+        setupStore.set('lastCsvPath', patch.lastCsvPath)
+      }
+    }
+  )
 
   createWindow()
 
@@ -84,6 +166,9 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  if (backendProcess && backendProcess.exitCode === null) {
+    backendProcess.kill()
+  }
   if (process.platform !== 'darwin') {
     app.quit()
   }

@@ -26,7 +26,9 @@ const FilterHarness: React.FC = () => {
         set-custom-range
       </button>
       <div data-testid="location-search">{location.search}</div>
-      <div data-testid="current-month">{filters.month === null ? 'null' : String(filters.month)}</div>
+      <div data-testid="current-month">
+        {filters.month === null ? 'null' : String(filters.month)}
+      </div>
     </div>
   )
 }

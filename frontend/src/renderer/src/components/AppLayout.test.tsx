@@ -88,7 +88,9 @@ describe('AppLayout', () => {
     expect(screen.getByText(SIDEBAR_FILTER_LABELS.communityArea)).toBeInTheDocument()
     expect(container.querySelector('.sidebar-filter-grid')).toBeInTheDocument()
     expect(container.querySelectorAll('.sidebar-filter-group--half').length).toBeGreaterThan(0)
-    expect(container.querySelectorAll('.sidebar-filter-grid .ant-select-show-search')).toHaveLength(0)
+    expect(container.querySelectorAll('.sidebar-filter-grid .ant-select-show-search')).toHaveLength(
+      0
+    )
 
     const dateInputs = container.querySelectorAll('.ant-picker-input input')
     expect(dateInputs.length).toBeGreaterThan(0)

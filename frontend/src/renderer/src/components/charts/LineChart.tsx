@@ -94,20 +94,20 @@ const LineChart: React.FC<LineChartProps> = ({
     const innerHeight = height - margin.top - margin.bottom
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`)
-    
+
     // Add gradient definition
     const defs = svg.append('defs')
     const gradientId = `line-fill-${chartId}`
-    const gradient = defs.append('linearGradient')
+    const gradient = defs
+      .append('linearGradient')
       .attr('id', gradientId)
       .attr('x1', '0%')
       .attr('y1', '0%')
       .attr('x2', '0%')
       .attr('y2', '100%')
-    gradient.append('stop')
-      .attr('offset', '0%')
-      .attr('stop-color', chartTheme.lineFillGradient[0])
-    gradient.append('stop')
+    gradient.append('stop').attr('offset', '0%').attr('stop-color', chartTheme.lineFillGradient[0])
+    gradient
+      .append('stop')
       .attr('offset', '100%')
       .attr('stop-color', chartTheme.lineFillGradient[1])
 
@@ -191,6 +191,16 @@ const LineChart: React.FC<LineChartProps> = ({
           .x((d) => x(String(d[xField]))!)
           .y((d) => y(Number(d[yField])))
 
+        if (series.label === allSeries[0].label) {
+          const areaGen = d3
+            .area<Record<string, unknown>>()
+            .x((d) => x(String(d[xField]))!)
+            .y0(innerHeight)
+            .y1((d) => y(Number(d[yField])))
+
+          g.append('path').datum(series.data).attr('fill', `url(#${gradientId})`).attr('d', areaGen)
+        }
+
         g.append('path')
           .datum(series.data)
           .attr('fill', 'none')
@@ -240,10 +250,7 @@ const LineChart: React.FC<LineChartProps> = ({
           .y0(innerHeight)
           .y1((d) => y(Number(d[yField])))
 
-        g.append('path')
-          .datum(data)
-          .attr('fill', `url(#${gradientId})`)
-          .attr('d', areaGen)
+        g.append('path').datum(data).attr('fill', `url(#${gradientId})`).attr('d', areaGen)
 
         g.append('path')
           .datum(data)

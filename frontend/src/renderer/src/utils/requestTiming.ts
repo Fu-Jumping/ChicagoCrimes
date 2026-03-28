@@ -18,9 +18,7 @@ interface RequestTimingClock {
 const defaultWallClockNow = (): number => Date.now()
 const defaultPerfNow = (): number => performance.now()
 
-const resolveClock = (
-  clock: RequestTimingClock = {}
-): Required<RequestTimingClock> => ({
+const resolveClock = (clock: RequestTimingClock = {}): Required<RequestTimingClock> => ({
   wallClockNow: clock.wallClockNow ?? defaultWallClockNow,
   perfNow: clock.perfNow ?? defaultPerfNow
 })

@@ -14,13 +14,13 @@
   --color-border: rgba(59, 73, 75, 0.2);
   --color-border-medium: rgba(59, 73, 75, 0.3);
   --color-shadow: rgba(0, 0, 0, 0.4);
-  --color-sidebar-bg: rgba(7, 13, 24, 0.76);
-  --color-topbar-bg: rgba(7, 14, 27, 0.72);
-  --color-statusbar-bg: rgba(6, 11, 21, 0.82);
+  --color-sidebar-bg: rgba(7, 13, 24, 0.4);
+  --color-topbar-bg: rgba(7, 14, 27, 0.4);
+  --color-statusbar-bg: rgba(6, 11, 21, 0.5);
   --route-bg-overlay:
-    linear-gradient(180deg, rgba(4, 9, 18, 0.82) 0%, rgba(6, 11, 20, 0.68) 52%, rgba(4, 9, 18, 0.84) 100%);
-  --route-bg-panel: rgba(8, 14, 26, 0.72);
-  --route-bg-panel-strong: rgba(7, 13, 24, 0.84);
+    linear-gradient(180deg, rgba(4, 9, 18, 0.6) 0%, rgba(6, 11, 20, 0.45) 52%, rgba(4, 9, 18, 0.65) 100%);
+  --route-bg-panel: rgba(8, 14, 26, 0.65);
+  --route-bg-panel-strong: rgba(7, 13, 24, 0.75);
   --route-bg-panel-soft: rgba(255, 255, 255, 0.05);
   --route-bg-texture: rgba(219, 252, 255, 0.06);
   --route-brand-glow: rgba(0, 240, 255, 0.18);

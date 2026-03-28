@@ -7,7 +7,7 @@ interface AnalysisPageShellProps {
   titleAccent?: string
   systemTag?: string
   subtitle?: string
-  variant: 'dashboard' | 'trend' | 'district' | 'type'
+  variant: 'dashboard' | 'trend' | 'district' | 'type' | 'map'
   filter?: React.ReactNode
   /** 用户友好的联动事件描述文本 */
   eventStatus?: string
@@ -41,14 +41,22 @@ const AnalysisPageShell: React.FC<AnalysisPageShellProps> = ({
             {systemTag && (
               <div className="analysis-shell__eyebrow">
                 <div className="analysis-shell__system-dot" />
-                <span>{systemTag}</span>
+                <span className="analysis-shell__eyebrow-text">{systemTag}</span>
+                <div className="analysis-shell__eyebrow-line" />
               </div>
             )}
-            <h2 className="analysis-shell__title">
-              {title}
-              {titleAccent && <span className="analysis-shell__title-accent"> {titleAccent}</span>}
-            </h2>
-            {subtitle && <p className="analysis-shell__subtitle">{subtitle}</p>}
+            <div className="analysis-shell__title-wrapper">
+              <div className="analysis-shell__title-decorator" />
+              <div className="analysis-shell__title-group">
+                <h2 className="analysis-shell__title">
+                  {title}
+                  {titleAccent && (
+                    <span className="analysis-shell__title-accent"> {titleAccent}</span>
+                  )}
+                </h2>
+                {subtitle && <p className="analysis-shell__subtitle">{subtitle}</p>}
+              </div>
+            </div>
           </div>
           {filter && <div className="analysis-shell__filter">{filter}</div>}
         </div>

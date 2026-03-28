@@ -11,7 +11,15 @@ describe('districtBoundaries', () => {
           properties: { dist_num: '01' },
           geometry: {
             type: 'Polygon',
-            coordinates: [[[-87.6, 41.8], [-87.6, 41.9], [-87.5, 41.9], [-87.5, 41.8], [-87.6, 41.8]]]
+            coordinates: [
+              [
+                [-87.6, 41.8],
+                [-87.6, 41.9],
+                [-87.5, 41.9],
+                [-87.5, 41.8],
+                [-87.6, 41.8]
+              ]
+            ]
           }
         }
       ]

@@ -20,6 +20,12 @@ $ npm install
 $ npm run dev
 ```
 
+### 首次启动与数据导入
+
+桌面端首次启动时会检测后端 `GET /api/setup/status`。若 MySQL 尚未配置或数据/汇总表未就绪，将显示**首次设置向导**（环境检测、`.env` 写入、表结构、CSV 导入、汇总与索引构建）。请先启动 FastAPI 后端并准备好 `Crimes_-_2001_to_Present.csv`。
+
+详细说明见仓库根目录 [`docs/user-guide.md`](../docs/user-guide.md)。
+
 ### Build
 
 ```bash

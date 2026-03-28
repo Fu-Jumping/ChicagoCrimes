@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 BACKEND_DIR = REPO_ROOT / "backend"
 FRONTEND_DIR = REPO_ROOT / "frontend"
 ENV_FILE = REPO_ROOT / ".env"
-REQUIRED_ENV_VARS = ["MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST", "MYSQL_PORT", "MYSQL_DATABASE"]
+REQUIRED_ENV_VARS = ["MYSQL_USER", "MYSQL_HOST", "MYSQL_PORT", "MYSQL_DATABASE"]
 
 
 def read_env_file(file_path: Path) -> dict[str, str]:
@@ -64,12 +64,11 @@ def ensure_required_env(runtime_env: dict[str, str]) -> None:
     missing_vars = [key for key in REQUIRED_ENV_VARS if not runtime_env.get(key)]
     if not missing_vars:
         return
-    print("启动失败：缺少必需环境变量。")
-    print("请在仓库根目录创建 .env（可由 .env.example 复制）并补齐以下键：")
+    print("提示：尚未配置数据库环境变量，将以首次设置向导模式启动。")
+    print("缺少以下键（可稍后通过向导自动配置）：")
     for key in missing_vars:
-        print(f"- {key}")
-    print(f'参考文件："{REPO_ROOT / ".env.example"}"')
-    raise SystemExit(1)
+        print(f"  - {key}")
+    print(f'如需手动配置，可参考："{REPO_ROOT / ".env.example"}"')
 
 
 def resolve_backend_python() -> str:

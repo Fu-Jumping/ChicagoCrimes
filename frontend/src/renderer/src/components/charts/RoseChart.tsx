@@ -50,8 +50,8 @@ const RoseChart: React.FC<RoseChartProps> = ({
   const minDrawHeight = 220
   const canDraw = currentWidth >= minDrawWidth && height >= minDrawHeight
 
-  const legendWidth = Math.min(Math.max(currentWidth * 0.3, 120), 200)
-  const svgWidth = currentWidth - legendWidth
+  const legendWidth = Math.min(Math.max(currentWidth * 0.25, 100), 160)
+  const svgWidth = currentWidth - legendWidth + 40
 
   const { theme } = useThemeMode()
   const chartTheme = useMemo(() => getChartTheme(theme), [theme])
@@ -362,7 +362,7 @@ const RoseChart: React.FC<RoseChartProps> = ({
               overflowY: 'auto',
               overflowX: 'hidden',
               paddingTop: 12,
-              paddingLeft: 8,
+              paddingLeft: 32,
               paddingRight: 4
             }}
           >

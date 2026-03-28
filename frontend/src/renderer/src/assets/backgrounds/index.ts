@@ -7,9 +7,9 @@ import map from './map.jpg'
 const routeBackgrounds: Record<string, string> = {
   overview,
   trend,
-  type: typeBackground,
+  type: map,
   district,
-  map
+  map: typeBackground
 }
 
 export default routeBackgrounds

@@ -54,7 +54,7 @@ export const SIDEBAR_FILTER_LABELS = {
   domestic: '是否家暴'
 } as const
 
-export const formatBeatOptionLabel = (value: string): string => `警区 ${value}`
+export const formatBeatOptionLabel = (value: string): string => `${value}`
 
 export const formatWardOptionLabel = (value: number): string => `第 ${value} 选区`
 

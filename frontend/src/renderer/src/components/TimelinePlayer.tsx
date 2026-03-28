@@ -108,7 +108,10 @@ const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
         overflow: 'hidden'
       }}
     >
-      <Typography.Text type="secondary" style={{ marginBottom: 12, fontSize: 12, textAlign: 'center' }}>
+      <Typography.Text
+        type="secondary"
+        style={{ marginBottom: 12, fontSize: 12, textAlign: 'center' }}
+      >
         月份滑动选择
       </Typography.Text>
 
@@ -147,7 +150,8 @@ const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
         >
           {TIMELINE_OPTIONS.map((option, index) => {
             const selected = option.value === currentMonth
-            const testId = option.value === null ? 'timeline-option-all' : `timeline-option-${option.value}`
+            const testId =
+              option.value === null ? 'timeline-option-all' : `timeline-option-${option.value}`
             return (
               <button
                 key={option.label}
@@ -183,7 +187,14 @@ const TimelinePlayer: React.FC<TimelinePlayerProps> = ({
       </div>
 
       {loading ? (
-        <div style={{ marginTop: 12, color: 'var(--color-text-secondary)', fontSize: 12, textAlign: 'center' }}>
+        <div
+          style={{
+            marginTop: 12,
+            color: 'var(--color-text-secondary)',
+            fontSize: 12,
+            textAlign: 'center'
+          }}
+        >
           数据加载中...
         </div>
       ) : null}

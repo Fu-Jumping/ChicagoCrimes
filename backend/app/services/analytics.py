@@ -74,7 +74,15 @@ class SummaryCapabilities:
 _summary_capabilities: Optional[SummaryCapabilities] = None
 
 
+def reset_summary_capabilities_cache() -> None:
+    """Call after database engine is reconfigured (e.g. setup wizard)."""
+    global _summary_capabilities
+    _summary_capabilities = None
+
+
 def _load_summary_table_columns() -> Dict[str, set[str]]:
+    if engine is None:
+        return {}
     inspector = inspect(engine)
     table_columns: Dict[str, set[str]] = {}
     for table_name in _REQUIRED_SUMMARY_COLUMNS:
@@ -129,11 +137,11 @@ def _use_summary() -> bool:
 
 def _has_extended_filters(
     *,
-    beat: Optional[str] = None,
-    ward: Optional[int] = None,
-    community_area: Optional[int] = None,
+    beat=None,
+    ward=None,
+    community_area=None,
 ) -> bool:
-    return beat is not None or ward is not None or community_area is not None
+    return bool(beat) or bool(ward) or bool(community_area)
 
 
 def can_use_summary_filters(
@@ -299,25 +307,25 @@ def _apply_summary_filters(
     if end_year is not None:
         query = query.filter(model.year <= end_year)
     if year is not None:
-        query = query.filter(model.year == year)
+        query = query.filter(model.year.in_(year) if isinstance(year, list) else model.year == year)
     if primary_type is not None:
-        query = query.filter(model.primary_type == primary_type)
+        query = query.filter(model.primary_type.in_(primary_type) if isinstance(primary_type, list) else model.primary_type == primary_type)
     if district is not None:
-        query = query.filter(model.district == str(district))
+        query = query.filter(model.district.in_([str(d) for d in district]) if isinstance(district, list) else model.district == str(district))
     if arrest is not None:
-        query = query.filter(model.arrest == arrest)
+        query = query.filter(model.arrest.in_(arrest) if isinstance(arrest, list) else model.arrest == arrest)
     if month is not None:
-        query = query.filter(model.month == month)
+        query = query.filter(model.month.in_(month) if isinstance(month, list) else model.month == month)
     if domestic is not None:
-        query = query.filter(model.domestic == domestic)
+        query = query.filter(model.domestic.in_(domestic) if isinstance(domestic, list) else model.domestic == domestic)
 
     if model is F:
         if beat is not None:
-            query = query.filter(model.beat == str(beat))
+            query = query.filter(model.beat.in_([str(b) for b in beat]) if isinstance(beat, list) else model.beat == str(beat))
         if ward is not None:
-            query = query.filter(model.ward == ward)
+            query = query.filter(model.ward.in_(ward) if isinstance(ward, list) else model.ward == ward)
         if community_area is not None:
-            query = query.filter(model.community_area == community_area)
+            query = query.filter(model.community_area.in_(community_area) if isinstance(community_area, list) else model.community_area == community_area)
     elif _has_extended_filters(beat=beat, ward=ward, community_area=community_area):
         raise ValueError("Extended filters require crimes_filter_summary support")
 
@@ -343,21 +351,21 @@ def _apply_daily_summary_filters(
     if end_year is not None:
         query = query.filter(D.crime_year <= end_year)
     if year is not None:
-        query = query.filter(D.crime_year == year)
+        query = query.filter(D.crime_year.in_(year) if isinstance(year, list) else D.crime_year == year)
     if primary_type is not None:
-        query = query.filter(D.primary_type == primary_type)
+        query = query.filter(D.primary_type.in_(primary_type) if isinstance(primary_type, list) else D.primary_type == primary_type)
     if start_date is not None:
         query = query.filter(D.crime_date >= start_date.date())
     if end_date is not None:
         query = query.filter(D.crime_date <= end_date.date())
     if district is not None:
-        query = query.filter(D.district == str(district))
+        query = query.filter(D.district.in_([str(d) for d in district]) if isinstance(district, list) else D.district == str(district))
     if arrest is not None:
-        query = query.filter(D.arrest == arrest)
+        query = query.filter(D.arrest.in_(arrest) if isinstance(arrest, list) else D.arrest == arrest)
     if month is not None:
-        query = query.filter(D.crime_month == month)
+        query = query.filter(D.crime_month.in_(month) if isinstance(month, list) else D.crime_month == month)
     if domestic is not None:
-        query = query.filter(D.domestic == domestic)
+        query = query.filter(D.domestic.in_(domestic) if isinstance(domestic, list) else D.domestic == domestic)
     return query
 
 
@@ -383,27 +391,27 @@ def apply_filters(
     if end_year is not None:
         query = query.filter(model.year <= end_year)
     if year is not None:
-        query = query.filter(model.year == year)
+        query = query.filter(model.year.in_(year) if isinstance(year, list) else model.year == year)
     if primary_type is not None:
-        query = query.filter(model.primary_type == primary_type)
+        query = query.filter(model.primary_type.in_(primary_type) if isinstance(primary_type, list) else model.primary_type == primary_type)
     if start_date is not None:
         query = query.filter(model.date >= start_date)
     if end_date is not None:
         query = query.filter(model.date <= end_date)
     if district is not None:
-        query = query.filter(model.district == str(district))
+        query = query.filter(model.district.in_([str(d) for d in district]) if isinstance(district, list) else model.district == str(district))
     if arrest is not None:
-        query = query.filter(model.arrest == arrest)
+        query = query.filter(model.arrest.in_(arrest) if isinstance(arrest, list) else model.arrest == arrest)
     if month is not None:
-        query = query.filter(model.crime_month == month)
+        query = query.filter(model.crime_month.in_(month) if isinstance(month, list) else model.crime_month == month)
     if beat is not None:
-        query = query.filter(model.beat == str(beat))
+        query = query.filter(model.beat.in_([str(b) for b in beat]) if isinstance(beat, list) else model.beat == str(beat))
     if ward is not None:
-        query = query.filter(model.ward == ward)
+        query = query.filter(model.ward.in_(ward) if isinstance(ward, list) else model.ward == ward)
     if community_area is not None:
-        query = query.filter(model.community_area == community_area)
+        query = query.filter(model.community_area.in_(community_area) if isinstance(community_area, list) else model.community_area == community_area)
     if domestic is not None:
-        query = query.filter(model.domestic == domestic)
+        query = query.filter(model.domestic.in_(domestic) if isinstance(domestic, list) else model.domestic == domestic)
     return query
 
 

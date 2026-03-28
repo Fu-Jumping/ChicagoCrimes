@@ -18,7 +18,7 @@ import {
   type NormalizedChartResult
 } from '../utils/chartData'
 import { translateCrimeType } from '../utils/crimeTypeMap'
-import { buildAnalyticsFilterParams } from '../utils/filterParams'
+import { buildAnalyticsFilterParams, singleNumber } from '../utils/filterParams'
 
 const normalizeArrestRows = (rows: GenericRow[]): GenericRow[] =>
   rows.map((row) => {
@@ -75,11 +75,11 @@ const TypeAnalysis: React.FC = () => {
       const [typeRes, arrestRes, domesticRes] = await Promise.all([
         analyticsApi.getTypesProportion({
           ...debouncedRequestParams,
-          limit: 10,
+          limit: 10
         }),
         analyticsApi.getTypesArrestRate({
           ...debouncedRequestParams,
-          limit: 5,
+          limit: 5
         }),
         analyticsApi.getDomesticProportion(debouncedRequestParams)
       ])
@@ -235,7 +235,7 @@ const TypeAnalysis: React.FC = () => {
                 series={buildSeriesWithCurrent(
                   arrestRateResult.data,
                   arrestComparison.series,
-                  filters.year
+                  singleNumber(filters.year)
                 )}
               />
             </DataStatePanel>
