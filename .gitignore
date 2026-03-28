@@ -42,3 +42,15 @@ logs/
 # OS
 Thumbs.db
 .DS_Store
+
+# Documentation：忽略内部计划、AI skills、Word 文稿；保留 README、用户指南与 API 规格等必要文档
+skills/
+docs/plans/
+doc/plans/
+**/*.docx
+**/*.md
+!/README.md
+!/docs/*.md
+!/doc/spec/*.md
+!/frontend/README.md
+!/backend/README.md

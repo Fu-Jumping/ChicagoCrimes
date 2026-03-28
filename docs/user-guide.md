@@ -48,3 +48,5 @@
 - `CORS_ALLOWED_ORIGINS`（开发时包含 `http://localhost:5173` 等）
 
 可选：`VITE_BACKEND_ORIGIN`（前端构建/开发时覆盖默认 `http://127.0.0.1:8000`）。
+
+更完整的后端说明（仅启动 API、`.env` 位置、全量测试、`sql/` 与 `doc/spec/` 索引）见 **[backend/README.md](../backend/README.md)**。
