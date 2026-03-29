@@ -186,6 +186,18 @@ export async function postResetSetup(): Promise<{ ok: boolean }> {
 
 export function isSetupFullyReady(status: SetupStatusResponse): boolean {
   return Boolean(
-    status.database_configured && status.crimes_populated && status.summaries_ready && !status.error
+    // Allow entering the app once core data is ready.
+    // Summary tables can be rebuilt later and should not block startup.
+    status.database_configured && status.tables_ok && status.crimes_populated && !status.error
+  )
+}
+
+/**
+ * 启动门禁：已连接库且 crimes 有数据即可进入主界面。
+ * 汇总表缺失时分析接口会回退读 crimes 表（见后端 analytics），不必强制走完向导「构建汇总」步骤。
+ */
+export function passesSetupGate(status: SetupStatusResponse): boolean {
+  return Boolean(
+    status.database_configured && status.tables_ok && status.crimes_populated && !status.error
   )
 }

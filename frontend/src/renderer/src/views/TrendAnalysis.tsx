@@ -168,6 +168,7 @@ const TrendAnalysis: React.FC = () => {
                 yField="count"
                 yFieldLabel="案件数量"
                 height={300}
+                styleVariant="smooth"
                 series={buildSeriesWithCurrent(
                   monthlyResult.data,
                   monthlyComparison.series,
@@ -238,6 +239,7 @@ const TrendAnalysis: React.FC = () => {
                 yField="count"
                 yFieldLabel="案件数量"
                 height={300}
+                styleVariant="smooth"
                 series={buildSeriesWithCurrent(
                   hourlyResult.data,
                   hourlyComparison.series,

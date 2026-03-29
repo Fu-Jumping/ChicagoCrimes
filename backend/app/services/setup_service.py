@@ -69,6 +69,7 @@ _performance_indexes: list[str] = [
     "CREATE INDEX idx_year_domestic ON crimes (year, domestic)",
     "CREATE INDEX idx_year_type_location ON crimes (year, primary_type, location_description)",
     "CREATE INDEX idx_year_lat_lng ON crimes (year, lat_round3, lng_round3)",
+    "CREATE INDEX idx_block ON crimes (block)",
 ]
 
 _derived_columns_to_replace: tuple[str, ...] = (

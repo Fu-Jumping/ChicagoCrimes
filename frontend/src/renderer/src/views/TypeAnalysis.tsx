@@ -201,6 +201,7 @@ const TypeAnalysis: React.FC = () => {
                 labelField="label"
                 valueField="count"
                 height={350}
+                styleVariant="donut"
               />
             </DataStatePanel>
           </InsightCard>

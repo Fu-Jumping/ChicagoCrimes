@@ -1,4 +1,5 @@
 import type { GlobalFilters } from '../contexts/globalFiltersState'
+import { normalizeCrimeTypeValues } from './crimeTypeMap'
 
 export const singleNumber = (v: number | number[] | null | undefined): number | null => {
   if (v === null || v === undefined) return null
@@ -41,11 +42,19 @@ export const buildAnalyticsFilterParams = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any> => {
   const omitDateRange = isRedundantFullYearRange(filters)
+  const normalizedPrimaryType = filters.primaryType
+    ? normalizeCrimeTypeValues(Array.isArray(filters.primaryType) ? filters.primaryType : [filters.primaryType])
+    : []
 
   return {
     year: filters.year ?? undefined,
     month: filters.month ?? undefined,
-    primary_type: filters.primaryType ?? undefined,
+    primary_type:
+      normalizedPrimaryType.length === 0
+        ? undefined
+        : normalizedPrimaryType.length === 1
+          ? normalizedPrimaryType[0]
+          : normalizedPrimaryType,
     start_date: omitDateRange ? undefined : (filters.startDate ?? undefined),
     end_date: omitDateRange ? undefined : (filters.endDate ?? undefined),
     district: filters.district ?? undefined,

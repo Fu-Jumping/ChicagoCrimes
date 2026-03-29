@@ -13,7 +13,8 @@ import TrendAnalysis from './views/TrendAnalysis'
 import TypeAnalysis from './views/TypeAnalysis'
 import DistrictAnalysis from './views/DistrictAnalysis'
 import MapView from './views/MapView'
-import { fetchSetupStatus, isSetupFullyReady } from './api/setupWizard'
+import RequirementsAnalysis from './views/RequirementsAnalysis'
+import { fetchSetupStatus, passesSetupGate } from './api/setupWizard'
 import './assets/main.css'
 
 function AppContent({ onResetSetup }: { onResetSetup: () => void }): JSX.Element {
@@ -38,6 +39,7 @@ function AppContent({ onResetSetup }: { onResetSetup: () => void }): JSX.Element
               <Route path="/type" element={<TypeAnalysis />} />
               <Route path="/district" element={<DistrictAnalysis />} />
               <Route path="/map" element={<MapView />} />
+              <Route path="/requirements" element={<RequirementsAnalysis />} />
               <Route path="*" element={<div>{t('app.windowTitle')}</div>} />
             </Routes>
           </AppLayout>
@@ -145,7 +147,7 @@ function SetupGate(): JSX.Element {
       try {
         const status = await fetchSetupStatus()
         if (cancelled) return
-        if (isSetupFullyReady(status)) {
+        if (passesSetupGate(status)) {
           try {
             await window.api?.setSetupStore?.({ setupCompleted: true })
           } catch {

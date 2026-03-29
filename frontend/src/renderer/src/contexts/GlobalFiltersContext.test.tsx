@@ -29,6 +29,13 @@ const FilterHarness: React.FC = () => {
       <div data-testid="current-month">
         {filters.month === null ? 'null' : String(filters.month)}
       </div>
+      <div data-testid="current-primary-type">
+        {filters.primaryType === null
+          ? 'null'
+          : Array.isArray(filters.primaryType)
+            ? filters.primaryType.join('|')
+            : filters.primaryType}
+      </div>
     </div>
   )
 }
@@ -77,5 +84,10 @@ describe('GlobalFiltersContext', () => {
     expect(getParam(search, 'start_date')).toBe('2023-05-10')
     expect(getParam(search, 'end_date')).toBe('2023-05-20')
     expect(screen.getByTestId('current-month')).toHaveTextContent('null')
+  })
+
+  it('normalizes Chinese primary_type query values into English codes', () => {
+    renderHarness('/?primary_type=盗窃，殴打')
+    expect(screen.getByTestId('current-primary-type')).toHaveTextContent('THEFT|BATTERY')
   })
 })

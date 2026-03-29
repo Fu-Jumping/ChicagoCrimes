@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { normalizeCrimeTypeValues } from '../utils/crimeTypeMap'
 import {
   GlobalFiltersContext,
   type GlobalFilters,
@@ -60,7 +61,12 @@ const parseMonth = (values: string[]): number | number[] | null => {
   return parsed !== null && parsed >= 1 && parsed <= 12 ? parsed : null
 }
 
-const parsePrimaryType = (values: string[]): string | string[] | null => parseStringArray(values)
+const parsePrimaryType = (values: string[]): string | string[] | null => {
+  const normalized = normalizeCrimeTypeValues(values)
+  if (normalized.length === 0) return null
+  if (normalized.length === 1) return normalized[0]
+  return normalized
+}
 
 const parseDistrict = (values: string[]): number | number[] | null =>
   parsePositiveIntegerArray(values)

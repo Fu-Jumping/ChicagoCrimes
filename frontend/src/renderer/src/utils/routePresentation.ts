@@ -1,4 +1,4 @@
-export type RouteBackgroundKey = 'overview' | 'trend' | 'type' | 'district' | 'map'
+export type RouteBackgroundKey = 'overview' | 'trend' | 'type' | 'district' | 'map' | 'requirements'
 
 export interface RoutePresentation {
   key: RouteBackgroundKey
@@ -43,6 +43,13 @@ const ROUTE_PRESENTATION_MAP: Record<string, RoutePresentation> = {
     eyebrow: '空间热力分析',
     description: '在地图上查看案件热点、区域分布与空间聚集特征。',
     backgroundKey: 'map'
+  },
+  '/requirements': {
+    key: 'requirements',
+    title: '专项需求图表',
+    eyebrow: '任务导向分析',
+    description: '集中展示8项业务需求对应的专题图表与数据质量指标。',
+    backgroundKey: 'requirements'
   }
 }
 

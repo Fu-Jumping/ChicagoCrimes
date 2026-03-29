@@ -7,6 +7,8 @@ import icon from '../../resources/icon.ico?asset'
 import { setupStore } from './store'
 
 let backendProcess: ChildProcess | null = null
+const APP_USER_MODEL_ID = 'com.chicago-crime.visualization'
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
 
 function startBackend(): void {
   if (is.dev) return  // dev mode: backend is started manually via `python start.py dev`
@@ -90,77 +92,81 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  startBackend()
-
-  // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
-
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    if (!mainWindow) {
+      return
+    }
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore()
+    }
+    mainWindow.focus()
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  app.whenReady().then(() => {
+    startBackend()
 
-  ipcMain.handle('select-csv-file', async () => {
-    const win = BrowserWindow.getFocusedWindow()
-    const dialogOptions: OpenDialogOptions = {
-      title: '选择 crimes CSV 数据文件',
-      properties: ['openFile'],
-      filters: [{ name: 'CSV', extensions: ['csv'] }]
-    }
-    const { canceled, filePaths } = win
-      ? await dialog.showOpenDialog(win, dialogOptions)
-      : await dialog.showOpenDialog(dialogOptions)
-    const filePath = filePaths[0] ?? null
-    let size: number | null = null
-    if (filePath) {
-      try {
-        const fs = await import('fs/promises')
-        const stat = await fs.stat(filePath)
-        size = stat.size
-      } catch {
-        /* ignore */
+    electronApp.setAppUserModelId(APP_USER_MODEL_ID)
+
+    app.on('browser-window-created', (_, window) => {
+      optimizer.watchWindowShortcuts(window)
+    })
+
+    ipcMain.on('ping', () => console.log('pong'))
+
+    ipcMain.handle('select-csv-file', async () => {
+      const win = BrowserWindow.getFocusedWindow()
+      const dialogOptions: OpenDialogOptions = {
+        title: '选择 crimes CSV 数据文件',
+        properties: ['openFile'],
+        filters: [{ name: 'CSV', extensions: ['csv'] }]
       }
-    }
-    return { canceled, path: filePath, size }
+      const { canceled, filePaths } = win
+        ? await dialog.showOpenDialog(win, dialogOptions)
+        : await dialog.showOpenDialog(dialogOptions)
+      const filePath = filePaths[0] ?? null
+      let size: number | null = null
+      if (filePath) {
+        try {
+          const fs = await import('fs/promises')
+          const stat = await fs.stat(filePath)
+          size = stat.size
+        } catch {
+        }
+      }
+      return { canceled, path: filePath, size }
+    })
+
+    ipcMain.handle('setup-store-get', () => ({
+      setupCompleted: setupStore.get('setupCompleted'),
+      lastCsvPath: setupStore.get('lastCsvPath')
+    }))
+
+    ipcMain.handle(
+      'setup-store-set',
+      (
+        _event,
+        patch: Partial<{ setupCompleted: boolean; lastCsvPath: string }>
+      ): void => {
+        if (typeof patch.setupCompleted === 'boolean') {
+          setupStore.set('setupCompleted', patch.setupCompleted)
+        }
+        if (typeof patch.lastCsvPath === 'string') {
+          setupStore.set('lastCsvPath', patch.lastCsvPath)
+        }
+      }
+    )
+
+    createWindow()
+
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
   })
-
-  ipcMain.handle('setup-store-get', () => ({
-    setupCompleted: setupStore.get('setupCompleted'),
-    lastCsvPath: setupStore.get('lastCsvPath')
-  }))
-
-  ipcMain.handle(
-    'setup-store-set',
-    (
-      _event,
-      patch: Partial<{ setupCompleted: boolean; lastCsvPath: string }>
-    ): void => {
-      if (typeof patch.setupCompleted === 'boolean') {
-        setupStore.set('setupCompleted', patch.setupCompleted)
-      }
-      if (typeof patch.lastCsvPath === 'string') {
-        setupStore.set('lastCsvPath', patch.lastCsvPath)
-      }
-    }
-  )
-
-  createWindow()
-
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+}
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

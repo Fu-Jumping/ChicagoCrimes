@@ -266,6 +266,7 @@ const Dashboard: React.FC = () => {
                 yField="count"
                 yFieldLabel="案件数量"
                 height={300}
+                styleVariant="smooth"
                 series={buildSeriesWithCurrent(
                   trendState.result.data,
                   trendComparison.series,
@@ -294,6 +295,7 @@ const Dashboard: React.FC = () => {
                 labelField="primary_type"
                 valueField="count"
                 height={300}
+                styleVariant="donut"
                 labelTranslator={translateCrimeType}
               />
             </DataStatePanel>

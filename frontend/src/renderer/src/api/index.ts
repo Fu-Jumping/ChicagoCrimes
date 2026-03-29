@@ -120,6 +120,8 @@ const requestHistoryLimit = 50
 const responseMemoryCache = new Map<string, MemoryCacheEntry>()
 const inFlightRequests = new Map<string, Promise<ApiResponse<unknown>>>()
 const MEMORY_CACHE_TTL_MS = 5 * 60 * 1000
+const WARMUP_STAGE_TIMEOUT_MS = 12000
+let requirementsWarmupPromise: Promise<void> | null = null
 
 const normalizeError = (error: unknown): NormalizedApiError => {
   if (axios.isAxiosError(error)) {
@@ -447,10 +449,20 @@ export const analyticsApi = {
     get<Record<string, unknown>[]>('/analytics/trend/weekly', params),
   getHourlyTrend: (params?: Record<string, unknown>) =>
     get<Record<string, unknown>[]>('/analytics/trend/hourly', params),
+  getNightlyPeak: (params?: Record<string, unknown>) =>
+    get<Record<string, unknown>[]>('/analytics/trend/nightly_peak', params),
   getTypesProportion: (params?: Record<string, unknown>) =>
     get<Record<string, unknown>[]>('/analytics/types/proportion', params),
+  getTypesSeasonalCompare: (params?: Record<string, unknown>) =>
+    get<Record<string, unknown>[]>('/analytics/types/seasonal_compare', params),
   getDistrictsComparison: (params?: Record<string, unknown>) =>
     get<Record<string, unknown>[]>('/analytics/districts/comparison', params),
+  getDistrictsTypeBreakdown: (params?: Record<string, unknown>) =>
+    get<Record<string, unknown>[]>('/analytics/districts/type_breakdown', params),
+  getCommunityTop10: (params?: Record<string, unknown>) =>
+    get<Record<string, unknown>[]>('/analytics/community/top10', params),
+  getDangerousBlocksTop: (params?: Record<string, unknown>) =>
+    get<Record<string, unknown>[]>('/analytics/blocks/top_dangerous', params),
   getArrestsRate: (params?: Record<string, unknown>) =>
     get<Record<string, unknown>[]>('/analytics/arrests/rate', params),
   getDomesticProportion: (params?: Record<string, unknown>) =>
@@ -461,6 +473,8 @@ export const analyticsApi = {
     get<Record<string, unknown>[]>('/analytics/trend/monthly', params),
   getTypesArrestRate: (params?: Record<string, unknown>) =>
     get<Record<string, unknown>[]>('/analytics/types/arrest_rate', params),
+  getCaseNumberQuality: (params?: Record<string, unknown>) =>
+    get<Record<string, unknown>[]>('/analytics/quality/case_number', params),
   getFilterOptions: (params?: Record<string, unknown>) =>
     get<FilterOptionsResponse>('/analytics/filters/options', params),
   getGeoHeatmap: (
@@ -516,6 +530,15 @@ export const analyticsApi = {
         label: '预加载地图热力与分区数据',
         run: () =>
           Promise.allSettled([analyticsApi.getGeoHeatmap(), analyticsApi.getGeoDistricts()])
+      },
+      {
+        key: 'requirements',
+        label: '预加载专项分析图表',
+        run: () =>
+          Promise.allSettled([
+            analyticsApi.getTypesSeasonalCompare({ limit: 8 }),
+            analyticsApi.getDangerousBlocksTop({ limit: 10 })
+          ])
       }
     ]
 
@@ -532,7 +555,12 @@ export const analyticsApi = {
         label: stage.label
       })
 
-      await stage.run()
+      await Promise.race([
+        stage.run(),
+        new Promise<void>((resolve) => {
+          window.setTimeout(resolve, WARMUP_STAGE_TIMEOUT_MS)
+        })
+      ])
     }
 
     onProgress?.({
@@ -541,6 +569,27 @@ export const analyticsApi = {
       key: 'done',
       label: '预加载完成'
     })
+  },
+  warmupRequirementsData: (): Promise<void> => {
+    if (requirementsWarmupPromise) {
+      return requirementsWarmupPromise
+    }
+    requirementsWarmupPromise = Promise.allSettled([
+      analyticsApi.getYearlyTrend(),
+      analyticsApi.getHourlyTrend(),
+      analyticsApi.getWeeklyTrend(),
+      analyticsApi.getTypesProportion({ limit: 10 }),
+      analyticsApi.getYearlyTrend({ primary_type: ['HOMICIDE'] }),
+      analyticsApi.getLocationTypes({ limit: 10 }),
+      analyticsApi.getDangerousBlocksTop({ limit: 10 }),
+      analyticsApi.getDistrictsComparison({ limit: 10 }),
+      analyticsApi.getArrestsRate(),
+      analyticsApi.getYearlyTrend({ domestic: [true] }),
+      analyticsApi.getTypesSeasonalCompare({ limit: 8 })
+    ])
+      .catch(() => undefined)
+      .then(() => undefined)
+    return requirementsWarmupPromise
   }
 }
 

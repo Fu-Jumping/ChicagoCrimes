@@ -21,6 +21,7 @@ interface PieChartProps {
   labelTranslator?: (raw: string) => string
   width?: number | string
   height?: number
+  styleVariant?: 'default' | 'donut'
 }
 
 const identity = (v: string): string => v
@@ -34,7 +35,8 @@ const PieChart: React.FC<PieChartProps> = ({
   onDataPointClick,
   labelTranslator = identity,
   width = '100%',
-  height = 300
+  height = 300,
+  styleVariant = 'default'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const { containerRef, containerSize } = useChartContainerSize()
@@ -55,6 +57,7 @@ const PieChart: React.FC<PieChartProps> = ({
 
   const { theme } = useThemeMode()
   const chartTheme = useMemo(() => getChartTheme(theme), [theme])
+  const useDonutStyle = styleVariant === 'donut'
 
   const labels = useMemo(
     () => data.map((item) => String(item[labelField] ?? '')),
@@ -110,7 +113,7 @@ const PieChart: React.FC<PieChartProps> = ({
     const arcPath = d3
       .arc<d3.PieArcDatum<Record<string, unknown>>>()
       .outerRadius(radius - 4)
-      .innerRadius(0)
+      .innerRadius(useDonutStyle ? radius * 0.48 : 0)
 
     const labelArc = d3
       .arc<d3.PieArcDatum<Record<string, unknown>>>()
@@ -131,7 +134,7 @@ const PieChart: React.FC<PieChartProps> = ({
         return color(String(d.data[labelField] ?? ''))
       })
       .attr('stroke', 'var(--color-surface)')
-      .style('stroke-width', '2px')
+      .style('stroke-width', useDonutStyle ? '1.5px' : '2px')
       .style('cursor', onDataPointClick ? 'pointer' : 'default')
       .on('mousemove', (event, datum) => {
         const pointer = d3.pointer(event, containerRef.current)
@@ -261,6 +264,23 @@ const PieChart: React.FC<PieChartProps> = ({
 
     const adjustedLabels = applyLabelOverlapFix(sampledLabels)
 
+    if (useDonutStyle) {
+      g.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '-0.2em')
+        .style('font-size', '12px')
+        .style('fill', chartTheme.labelFill)
+        .text('总计')
+
+      g.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '1.2em')
+        .style('font-size', '18px')
+        .style('font-weight', 600)
+        .style('fill', chartTheme.labelFill)
+        .text(`${Math.round(totalValue)}`)
+    }
+
     g.selectAll('.label-line')
       .data(adjustedLabels)
       .enter()
@@ -317,6 +337,7 @@ const PieChart: React.FC<PieChartProps> = ({
     labelField,
     labelTranslator,
     onDataPointClick,
+    useDonutStyle,
     svgWidth,
     valueField
   ])

@@ -339,6 +339,7 @@ WARM_UP_PATHS = [
     "/api/v1/analytics/types/arrest_rate?limit=10",
     "/api/v1/analytics/types/arrest_rate?limit=5",
     "/api/v1/analytics/location/types?limit=15",
+    "/api/v1/analytics/blocks/top_dangerous?limit=10",
 ]
 
 
@@ -358,10 +359,40 @@ async def warm_cache():
     logger.info("cache_warmup_done")
 
 
+async def ensure_runtime_indexes():
+    def _ensure():
+        db = SessionLocal()
+        try:
+            rows = db.execute(
+                text(
+                    """
+                    SELECT INDEX_NAME
+                    FROM information_schema.STATISTICS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'crimes'
+                    """
+                )
+            ).fetchall()
+            existing = {str(row[0]) for row in rows}
+            if "idx_block" not in existing:
+                logger.info("runtime_index_create_start index=idx_block")
+                db.execute(text("CREATE INDEX idx_block ON crimes (block)"))
+                db.commit()
+                logger.info("runtime_index_create_done index=idx_block")
+        except Exception as exc:
+            db.rollback()
+            logger.warning("runtime_index_create_failed index=idx_block error=%s", str(exc))
+        finally:
+            db.close()
+
+    await asyncio.to_thread(_ensure)
+
+
 @app.on_event("startup")
 async def on_startup():
     if is_database_configured():
         asyncio.create_task(warm_cache())
+        asyncio.create_task(ensure_runtime_indexes())
 
 
 if __name__ == "__main__":

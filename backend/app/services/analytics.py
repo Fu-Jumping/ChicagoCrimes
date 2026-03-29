@@ -311,7 +311,7 @@ def _apply_summary_filters(
     if primary_type is not None:
         query = query.filter(model.primary_type.in_(primary_type) if isinstance(primary_type, list) else model.primary_type == primary_type)
     if district is not None:
-        query = query.filter(model.district.in_([str(d) for d in district]) if isinstance(district, list) else model.district == str(district))
+        query = query.filter(model.district.in_(_normalize_district_filter_values(district)))
     if arrest is not None:
         query = query.filter(model.arrest.in_(arrest) if isinstance(arrest, list) else model.arrest == arrest)
     if month is not None:
@@ -321,7 +321,7 @@ def _apply_summary_filters(
 
     if model is F:
         if beat is not None:
-            query = query.filter(model.beat.in_([str(b) for b in beat]) if isinstance(beat, list) else model.beat == str(beat))
+            query = query.filter(model.beat.in_(_normalize_beat_filter_values(beat)))
         if ward is not None:
             query = query.filter(model.ward.in_(ward) if isinstance(ward, list) else model.ward == ward)
         if community_area is not None:
@@ -330,6 +330,32 @@ def _apply_summary_filters(
         raise ValueError("Extended filters require crimes_filter_summary support")
 
     return query
+
+
+def _normalize_district_filter_values(district) -> list[str]:
+    raw_values = district if isinstance(district, list) else [district]
+    normalized: list[str] = []
+    for value in raw_values:
+        text = str(value).strip()
+        if not text:
+            continue
+        normalized.append(text)
+        if text.isdigit():
+            normalized.append(text.zfill(3))
+    return list(dict.fromkeys(normalized))
+
+
+def _normalize_beat_filter_values(beat) -> list[str]:
+    raw_values = beat if isinstance(beat, list) else [beat]
+    normalized: list[str] = []
+    for value in raw_values:
+        text = str(value).strip()
+        if not text:
+            continue
+        normalized.append(text)
+        if text.isdigit():
+            normalized.append(text.zfill(4))
+    return list(dict.fromkeys(normalized))
 
 
 def _apply_daily_summary_filters(
@@ -359,7 +385,7 @@ def _apply_daily_summary_filters(
     if end_date is not None:
         query = query.filter(D.crime_date <= end_date.date())
     if district is not None:
-        query = query.filter(D.district.in_([str(d) for d in district]) if isinstance(district, list) else D.district == str(district))
+        query = query.filter(D.district.in_(_normalize_district_filter_values(district)))
     if arrest is not None:
         query = query.filter(D.arrest.in_(arrest) if isinstance(arrest, list) else D.arrest == arrest)
     if month is not None:
@@ -399,13 +425,13 @@ def apply_filters(
     if end_date is not None:
         query = query.filter(model.date <= end_date)
     if district is not None:
-        query = query.filter(model.district.in_([str(d) for d in district]) if isinstance(district, list) else model.district == str(district))
+        query = query.filter(model.district.in_(_normalize_district_filter_values(district)))
     if arrest is not None:
         query = query.filter(model.arrest.in_(arrest) if isinstance(arrest, list) else model.arrest == arrest)
     if month is not None:
         query = query.filter(model.crime_month.in_(month) if isinstance(month, list) else model.crime_month == month)
     if beat is not None:
-        query = query.filter(model.beat.in_([str(b) for b in beat]) if isinstance(beat, list) else model.beat == str(beat))
+        query = query.filter(model.beat.in_(_normalize_beat_filter_values(beat)))
     if ward is not None:
         query = query.filter(model.ward.in_(ward) if isinstance(ward, list) else model.ward == ward)
     if community_area is not None:
@@ -1183,6 +1209,400 @@ def get_types_arrest_rate(
         reverse=(sort == "desc"),
     )
     return add_stable_key(sorted_results, "primary_type")
+
+
+def get_night_hourly_peak(
+    db: Session,
+    year: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    primary_type: Optional[str] = None,
+    district: Optional[int] = None,
+    arrest: Optional[bool] = None,
+    month: Optional[int] = None,
+    beat: Optional[str] = None,
+    ward: Optional[int] = None,
+    community_area: Optional[int] = None,
+    domestic: Optional[bool] = None,
+) -> List[Dict[str, Any]]:
+    night_hours = list(range(0, 6)) + list(range(18, 24))
+    query = db.query(Crime.crime_hour.label("hour"), func.count(Crime.id).label("count"))
+    query = query.filter(Crime.crime_hour.in_(night_hours))
+    query = apply_filters(
+        query,
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    query = query.group_by(Crime.crime_hour).order_by(desc("count"), asc(Crime.crime_hour))
+    results = query.all()
+    data = [{"hour": int(row.hour), "count": int(row.count)} for row in results if row.hour is not None]
+    return add_stable_key(data, "hour")
+
+
+def get_season_type_distribution(
+    db: Session,
+    year: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    district: Optional[int] = None,
+    arrest: Optional[bool] = None,
+    month: Optional[int] = None,
+    beat: Optional[str] = None,
+    ward: Optional[int] = None,
+    community_area: Optional[int] = None,
+    domestic: Optional[bool] = None,
+    limit_per_season: int = 8,
+) -> List[Dict[str, Any]]:
+    season_months = {
+        "winter": {12, 1, 2},
+        "summer": {6, 7, 8},
+    }
+    query = db.query(
+        Crime.crime_month.label("month"),
+        Crime.primary_type.label("primary_type"),
+        func.count(Crime.id).label("count"),
+    ).filter(Crime.primary_type.isnot(None), Crime.primary_type != "")
+    query = apply_filters(
+        query,
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    query = query.group_by(Crime.crime_month, Crime.primary_type)
+    results = query.all()
+
+    season_type_counts: Dict[str, Dict[str, int]] = {"winter": {}, "summer": {}}
+    season_totals: Dict[str, int] = {"winter": 0, "summer": 0}
+
+    for row in results:
+        if row.month is None or not row.primary_type:
+            continue
+        season = None
+        if int(row.month) in season_months["winter"]:
+            season = "winter"
+        elif int(row.month) in season_months["summer"]:
+            season = "summer"
+        if season is None:
+            continue
+        count_value = int(row.count)
+        season_type_counts[season][row.primary_type] = season_type_counts[season].get(row.primary_type, 0) + count_value
+        season_totals[season] += count_value
+
+    final_results: List[Dict[str, Any]] = []
+    for season in ("winter", "summer"):
+        total = season_totals[season]
+        if total <= 0:
+            continue
+        top_items = sorted(
+            season_type_counts[season].items(),
+            key=lambda item: (-item[1], item[0]),
+        )[:limit_per_season]
+        for primary_type, count_value in top_items:
+            final_results.append(
+                {
+                    "season": season,
+                    "primary_type": primary_type,
+                    "count": count_value,
+                    "proportion": round(count_value / total, 4),
+                    "key": f"{season}-{primary_type}",
+                }
+            )
+    return final_results
+
+
+def get_community_area_top(
+    db: Session,
+    year: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    primary_type: Optional[str] = None,
+    district: Optional[int] = None,
+    arrest: Optional[bool] = None,
+    month: Optional[int] = None,
+    beat: Optional[str] = None,
+    ward: Optional[int] = None,
+    community_area: Optional[int] = None,
+    domestic: Optional[bool] = None,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    query = db.query(Crime.community_area, func.count(Crime.id).label("count"))
+    query = query.filter(Crime.community_area.isnot(None))
+    query = apply_filters(
+        query,
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    query = query.group_by(Crime.community_area).order_by(desc("count"), asc(Crime.community_area)).limit(limit)
+    results = query.all()
+    data = [{"community_area": int(row.community_area), "count": int(row.count)} for row in results if row.community_area is not None]
+    return add_stable_key(data, "community_area")
+
+
+def get_district_type_breakdown(
+    db: Session,
+    year: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    arrest: Optional[bool] = None,
+    month: Optional[int] = None,
+    beat: Optional[str] = None,
+    ward: Optional[int] = None,
+    community_area: Optional[int] = None,
+    domestic: Optional[bool] = None,
+    district_limit: int = 8,
+    type_limit: int = 3,
+) -> List[Dict[str, Any]]:
+    district_query = db.query(Crime.district, func.count(Crime.id).label("count")).filter(
+        Crime.district.isnot(None), Crime.district != ""
+    )
+    district_query = apply_filters(
+        district_query,
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    district_query = district_query.group_by(Crime.district).order_by(desc("count"), asc(Crime.district)).limit(district_limit)
+    top_districts = [row.district for row in district_query.all() if row.district]
+    if not top_districts:
+        return []
+
+    type_query = db.query(Crime.primary_type, func.count(Crime.id).label("count")).filter(
+        Crime.primary_type.isnot(None), Crime.primary_type != "", Crime.district.in_(top_districts)
+    )
+    type_query = apply_filters(
+        type_query,
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    type_query = type_query.group_by(Crime.primary_type).order_by(desc("count"), asc(Crime.primary_type)).limit(type_limit)
+    top_types = [row.primary_type for row in type_query.all() if row.primary_type]
+    if not top_types:
+        return []
+
+    breakdown_query = db.query(
+        Crime.district,
+        Crime.primary_type,
+        func.count(Crime.id).label("count"),
+    ).filter(
+        Crime.district.in_(top_districts),
+        Crime.primary_type.in_(top_types),
+    )
+    breakdown_query = apply_filters(
+        breakdown_query,
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    breakdown_query = breakdown_query.group_by(Crime.district, Crime.primary_type)
+    results = breakdown_query.all()
+    data = [
+        {
+            "district": row.district,
+            "primary_type": row.primary_type,
+            "count": int(row.count),
+            "key": f"{row.district}-{row.primary_type}",
+        }
+        for row in results
+        if row.district and row.primary_type
+    ]
+    return sorted(data, key=lambda item: (top_districts.index(item["district"]), -item["count"], item["primary_type"]))
+
+
+def get_dangerous_blocks_top(
+    db: Session,
+    year: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    primary_type: Optional[str] = None,
+    district: Optional[int] = None,
+    arrest: Optional[bool] = None,
+    month: Optional[int] = None,
+    beat: Optional[str] = None,
+    ward: Optional[int] = None,
+    community_area: Optional[int] = None,
+    domestic: Optional[bool] = None,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    query = db.query(Crime.block.label("block"), func.count(Crime.id).label("count")).filter(
+        Crime.block.isnot(None), Crime.block != ""
+    )
+    query = apply_filters(
+        query,
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    query = query.group_by(Crime.block).order_by(desc("count"), asc(Crime.block)).limit(limit)
+    results = query.all()
+    data = [{"block": row.block, "count": int(row.count)} for row in results if row.block]
+    return add_stable_key(data, "block")
+
+
+def get_case_number_quality(
+    db: Session,
+    year: Optional[int] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    primary_type: Optional[str] = None,
+    district: Optional[int] = None,
+    arrest: Optional[bool] = None,
+    month: Optional[int] = None,
+    beat: Optional[str] = None,
+    ward: Optional[int] = None,
+    community_area: Optional[int] = None,
+    domestic: Optional[bool] = None,
+) -> List[Dict[str, Any]]:
+    case_regex = r"^[A-Z]{2}[0-9]{6,}$"
+    missing_condition = (Crime.case_number.is_(None)) | (func.trim(Crime.case_number) == "")
+
+    total_query = apply_filters(
+        db.query(func.count(Crime.id)),
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    total_count = int(total_query.scalar() or 0)
+    if total_count <= 0:
+        return []
+
+    missing_query = apply_filters(
+        db.query(func.count(Crime.id)).filter(missing_condition),
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    missing_count = int(missing_query.scalar() or 0)
+
+    invalid_query = apply_filters(
+        db.query(func.count(Crime.id)).filter(~missing_condition, ~Crime.case_number.op("REGEXP")(case_regex)),
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    invalid_count = int(invalid_query.scalar() or 0)
+
+    duplicate_query = apply_filters(
+        db.query(
+            Crime.case_number.label("case_number"),
+            func.count(Crime.id).label("case_count"),
+        ).filter(~missing_condition, Crime.case_number.op("REGEXP")(case_regex)),
+        Crime,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+    duplicate_rows = duplicate_query.group_by(Crime.case_number).having(func.count(Crime.id) > 1).all()
+    duplicate_count = int(sum(int(row.case_count) for row in duplicate_rows))
+
+    complete_count = max(total_count - missing_count - invalid_count - duplicate_count, 0)
+    metrics = [
+        {"status": "完整有效", "count": complete_count},
+        {"status": "缺失编号", "count": missing_count},
+        {"status": "格式异常", "count": invalid_count},
+        {"status": "重复编号", "count": duplicate_count},
+    ]
+    return [
+        {
+            **item,
+            "rate": round(item["count"] / total_count, 4),
+            "key": item["status"],
+        }
+        for item in metrics
+    ]
 
 
 def get_geo_heatmap(

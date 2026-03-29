@@ -62,7 +62,8 @@ const topNavItems = [
   { label: t('nav.trend'), path: '/trend' },
   { label: t('nav.type'), path: '/type' },
   { label: t('nav.district'), path: '/district' },
-  { label: t('nav.map'), path: '/map' }
+  { label: t('nav.map'), path: '/map' },
+  { label: t('nav.requirements'), path: '/requirements' }
 ]
 
 const pageIconMap = {
@@ -70,7 +71,8 @@ const pageIconMap = {
   trend: <LineChartOutlined />,
   type: <PieChartOutlined />,
   district: <BarChartOutlined />,
-  map: <GlobalOutlined />
+  map: <GlobalOutlined />,
+  requirements: <FilterOutlined />
 } as const
 
 const warmupLabelMap: Record<string, string> = {
@@ -79,6 +81,7 @@ const warmupLabelMap: Record<string, string> = {
   type: '预加载类型与逮捕分析',
   district: '预加载区域与地点结构',
   map: '预加载空间热力与分区数据',
+  requirements: '预加载专项分析图表',
   done: '预加载完成'
 }
 

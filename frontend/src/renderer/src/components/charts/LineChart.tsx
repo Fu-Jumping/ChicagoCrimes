@@ -24,6 +24,7 @@ interface LineChartProps {
   series?: ChartSeries[]
   width?: number | string
   height?: number
+  styleVariant?: 'default' | 'smooth'
 }
 
 const identity = (v: string): string => v
@@ -39,7 +40,8 @@ const LineChart: React.FC<LineChartProps> = ({
   yFieldLabel,
   series: externalSeries,
   width = '100%',
-  height = 300
+  height = 300,
+  styleVariant = 'default'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const { containerRef, containerSize } = useChartContainerSize()
@@ -60,6 +62,7 @@ const LineChart: React.FC<LineChartProps> = ({
   const chartTheme = useMemo(() => getChartTheme(theme), [theme])
 
   const isMultiSeries = externalSeries && externalSeries.length > 0
+  const useSmoothStyle = styleVariant === 'smooth'
 
   const allSeries: ChartSeries[] = useMemo(() => {
     if (isMultiSeries) return externalSeries!
@@ -190,6 +193,7 @@ const LineChart: React.FC<LineChartProps> = ({
           .line<Record<string, unknown>>()
           .x((d) => x(String(d[xField]))!)
           .y((d) => y(Number(d[yField])))
+          .curve(useSmoothStyle ? d3.curveCatmullRom.alpha(0.5) : d3.curveLinear)
 
         if (series.label === allSeries[0].label) {
           const areaGen = d3
@@ -197,6 +201,7 @@ const LineChart: React.FC<LineChartProps> = ({
             .x((d) => x(String(d[xField]))!)
             .y0(innerHeight)
             .y1((d) => y(Number(d[yField])))
+            .curve(useSmoothStyle ? d3.curveCatmullRom.alpha(0.5) : d3.curveLinear)
 
           g.append('path').datum(series.data).attr('fill', `url(#${gradientId})`).attr('d', areaGen)
         }
@@ -205,7 +210,7 @@ const LineChart: React.FC<LineChartProps> = ({
           .datum(series.data)
           .attr('fill', 'none')
           .attr('stroke', series.color)
-          .attr('stroke-width', 2)
+          .attr('stroke-width', useSmoothStyle ? 2.5 : 2)
           .attr('d', lineGen)
 
         g.selectAll(`.dot-${series.label}`)
@@ -214,8 +219,10 @@ const LineChart: React.FC<LineChartProps> = ({
           .append('circle')
           .attr('cx', (d) => x(String(d[xField]))!)
           .attr('cy', (d) => y(Number(d[yField])))
-          .attr('r', 3.5)
-          .attr('fill', series.color)
+          .attr('r', useSmoothStyle ? 4.5 : 3.5)
+          .attr('fill', useSmoothStyle ? chartTheme.tooltipBackground : series.color)
+          .attr('stroke', series.color)
+          .attr('stroke-width', useSmoothStyle ? 1.5 : 0)
           .style('cursor', 'default')
           .on('mousemove', (event, datum) => {
             const pointer = d3.pointer(event, containerRef.current)
@@ -242,6 +249,7 @@ const LineChart: React.FC<LineChartProps> = ({
         .line<Record<string, unknown>>()
         .x((d) => x(String(d[xField]))!)
         .y((d) => y(Number(d[yField])))
+        .curve(useSmoothStyle ? d3.curveCatmullRom.alpha(0.5) : d3.curveLinear)
 
       if (singleVisible) {
         const areaGen = d3
@@ -249,6 +257,7 @@ const LineChart: React.FC<LineChartProps> = ({
           .x((d) => x(String(d[xField]))!)
           .y0(innerHeight)
           .y1((d) => y(Number(d[yField])))
+          .curve(useSmoothStyle ? d3.curveCatmullRom.alpha(0.5) : d3.curveLinear)
 
         g.append('path').datum(data).attr('fill', `url(#${gradientId})`).attr('d', areaGen)
 
@@ -256,7 +265,7 @@ const LineChart: React.FC<LineChartProps> = ({
           .datum(data)
           .attr('fill', 'none')
           .attr('stroke', chartTheme.palette[0])
-          .attr('stroke-width', 2)
+          .attr('stroke-width', useSmoothStyle ? 2.5 : 2)
           .attr('d', lineGen)
       }
 
@@ -270,8 +279,8 @@ const LineChart: React.FC<LineChartProps> = ({
         .attr('r', (d) => {
           if (!singleVisible) return 0
           const key = String(d[xField] ?? '')
-          if (brushSelectedSet.size > 0 && brushSelectedSet.has(key)) return 6
-          return 4
+          if (brushSelectedSet.size > 0 && brushSelectedSet.has(key)) return useSmoothStyle ? 7 : 6
+          return useSmoothStyle ? 5 : 4
         })
         .attr('fill', (d) => {
           const key = String(d[xField] ?? '')
@@ -280,8 +289,10 @@ const LineChart: React.FC<LineChartProps> = ({
           if (brushSelectedSet.size > 0) {
             return brushSelectedSet.has(key) ? chartTheme.palette[0] : '#d9d9d9'
           }
-          return chartTheme.palette[0]
+          return useSmoothStyle ? chartTheme.tooltipBackground : chartTheme.palette[0]
         })
+        .attr('stroke', chartTheme.palette[0])
+        .attr('stroke-width', useSmoothStyle ? 1.8 : 0)
         .style('cursor', onDataPointClick ? 'pointer' : 'default')
         .on('mousemove', (event, datum) => {
           const pointer = d3.pointer(event, containerRef.current)
@@ -408,7 +419,8 @@ const LineChart: React.FC<LineChartProps> = ({
     onDataPointClick,
     xField,
     yField,
-    yFieldLabel
+    yFieldLabel,
+    useSmoothStyle
   ])
 
   return (

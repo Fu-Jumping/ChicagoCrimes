@@ -9,7 +9,8 @@ const routeBackgrounds: Record<string, string> = {
   trend,
   type: map,
   district,
-  map: typeBackground
+  map: typeBackground,
+  requirements: district
 }
 
 export default routeBackgrounds

@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { analyticsApi, type WarmupProgressSnapshot } from '../api'
 
 const MIN_WARMUP_OVERLAY_MS = 900
+const MAX_WARMUP_OVERLAY_MS = 6000
+const REQUIREMENTS_WARMUP_DELAY_MS = 300
 const INITIAL_PROGRESS: WarmupProgressSnapshot = {
   completed: 0,
-  total: 5,
+  total: 6,
   key: 'boot',
   label: '正在初始化分析缓存'
 }
@@ -20,6 +22,11 @@ export const useAppWarmup = (): {
   useEffect(() => {
     let cancelled = false
     const startedAt = performance.now()
+    const forceHideTimer = window.setTimeout(() => {
+      if (!cancelled) {
+        setIsWarmupActive(false)
+      }
+    }, MAX_WARMUP_OVERLAY_MS)
 
     const runWarmup = async (): Promise<void> => {
       try {
@@ -31,6 +38,7 @@ export const useAppWarmup = (): {
       } catch (error) {
         console.error('App warmup failed', error)
       } finally {
+        window.clearTimeout(forceHideTimer)
         const elapsed = performance.now() - startedAt
         const remaining = Math.max(0, MIN_WARMUP_OVERLAY_MS - elapsed)
         if (remaining > 0) {
@@ -38,6 +46,11 @@ export const useAppWarmup = (): {
         }
         if (!cancelled) {
           setIsWarmupActive(false)
+          if (import.meta.env.MODE !== 'test') {
+            window.setTimeout(() => {
+              void analyticsApi.warmupRequirementsData()
+            }, REQUIREMENTS_WARMUP_DELAY_MS)
+          }
         }
       }
     }
@@ -46,6 +59,7 @@ export const useAppWarmup = (): {
 
     return () => {
       cancelled = true
+      window.clearTimeout(forceHideTimer)
     }
   }, [])
 

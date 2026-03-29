@@ -35,6 +35,36 @@ const CRIME_TYPE_ZH: Record<string, string> = {
   'DOMESTIC VIOLENCE': '家庭暴力'
 }
 
+const CRIME_TYPE_EN_BY_ZH: Record<string, string> = Object.fromEntries(
+  Object.entries(CRIME_TYPE_ZH).map(([en, zh]) => [zh, en])
+)
+const CRIME_TYPE_EN_CANONICAL: Record<string, string> = Object.fromEntries(
+  Object.keys(CRIME_TYPE_ZH).map((en) => [en.trim().toUpperCase(), en])
+)
+
 export function translateCrimeType(englishName: string): string {
   return CRIME_TYPE_ZH[englishName] ?? englishName
+}
+
+export function normalizeCrimeTypeValue(input: string): string {
+  const normalized = input.trim()
+  if (!normalized) return ''
+  const mappedByZh = CRIME_TYPE_EN_BY_ZH[normalized]
+  if (mappedByZh) return mappedByZh
+  const mappedByEn = CRIME_TYPE_EN_CANONICAL[normalized.toUpperCase()]
+  if (mappedByEn) return mappedByEn
+  const parenthesizedEn = normalized.match(/\(([A-Za-z\s]+)\)/)?.[1]?.trim().toUpperCase()
+  if (parenthesizedEn) {
+    const mappedByParen = CRIME_TYPE_EN_CANONICAL[parenthesizedEn]
+    if (mappedByParen) return mappedByParen
+  }
+  return normalized
+}
+
+export function normalizeCrimeTypeValues(inputs: string[]): string[] {
+  const expanded = inputs.flatMap((raw) => raw.split(/[,，、|]/))
+  return expanded
+    .map((item) => normalizeCrimeTypeValue(item))
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
 }
