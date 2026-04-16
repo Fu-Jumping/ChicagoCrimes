@@ -34,9 +34,7 @@ export function ManualSetupGuide({ open, onClose, csvPath }: ManualSetupGuidePro
       </Paragraph>
       <Title level={5}>{t('setup.manual.sectionEnv')}</Title>
       <Paragraph>
-        <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>
-          {t('setup.manual.envExample')}
-        </pre>
+        <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{t('setup.manual.envExample')}</pre>
       </Paragraph>
       <Title level={5}>{t('setup.manual.sectionSchema')}</Title>
       <Paragraph>

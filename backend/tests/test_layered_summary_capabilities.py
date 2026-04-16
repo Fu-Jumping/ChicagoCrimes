@@ -102,6 +102,23 @@ class LayeredSummaryCapabilitiesTests(unittest.TestCase):
                 "domestic",
                 "crime_count",
             },
+            "crimes_location_rollup_summary": {
+                "location_description",
+                "crime_count",
+            },
+            "crimes_location_period_summary": {
+                "year",
+                "month",
+                "location_description",
+                "crime_count",
+            },
+            "crimes_location_daily_summary": {
+                "crime_date",
+                "crime_year",
+                "crime_month",
+                "location_description",
+                "crime_count",
+            },
         }
 
         capabilities = analytics_service.get_summary_capabilities(force_refresh=True)
@@ -110,6 +127,9 @@ class LayeredSummaryCapabilitiesTests(unittest.TestCase):
         self.assertTrue(capabilities.filter_summary)
         self.assertTrue(capabilities.location_summary)
         self.assertTrue(capabilities.daily_summary)
+        self.assertTrue(capabilities.location_rollup_summary)
+        self.assertTrue(capabilities.location_period_summary)
+        self.assertTrue(capabilities.location_daily_summary)
 
     def test_yearly_trend_uses_filter_summary_for_extended_filters(self):
         analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
@@ -174,6 +194,56 @@ class LayeredSummaryCapabilitiesTests(unittest.TestCase):
 
         self.assertEqual(result[0]["location_description"], "STREET")
         self.assertTrue(str(db.query_columns_history[0][0]).startswith("CrimeLocationSummary."))
+
+    def test_location_types_use_rollup_summary_for_unfiltered_requests(self):
+        analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
+            base_summary=True,
+            filter_summary=True,
+            location_summary=True,
+            daily_summary=False,
+            location_rollup_summary=True,
+        )
+        db = FakeSession([[SimpleNamespace(location_description="STREET", count=9)]])
+
+        result = analytics_service.get_location_types_top(db, limit=5)
+
+        self.assertEqual(result[0]["location_description"], "STREET")
+        self.assertEqual(str(db.query_columns_history[0][0]), "crimes_location_rollup_summary.location_description")
+
+    def test_location_types_use_period_summary_for_year_month_without_extra_filters(self):
+        analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
+            base_summary=True,
+            filter_summary=True,
+            location_summary=True,
+            daily_summary=False,
+            location_period_summary=True,
+        )
+        db = FakeSession([[SimpleNamespace(location_description="STREET", count=9)]])
+
+        result = analytics_service.get_location_types_top(db, year=2023, month=2, limit=5)
+
+        self.assertEqual(result[0]["location_description"], "STREET")
+        self.assertEqual(str(db.query_columns_history[0][0]), "crimes_location_period_summary.location_description")
+
+    def test_location_types_use_daily_location_summary_for_custom_date_range_without_extra_filters(self):
+        analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
+            base_summary=True,
+            filter_summary=True,
+            location_summary=True,
+            daily_summary=True,
+            location_daily_summary=True,
+        )
+        db = FakeSession([[SimpleNamespace(location_description="STREET", count=9)]])
+
+        result = analytics_service.get_location_types_top(
+            db,
+            start_date=analytics_service.datetime(2023, 3, 1),
+            end_date=analytics_service.datetime(2023, 8, 31, 23, 59, 59),
+            limit=5,
+        )
+
+        self.assertEqual(result[0]["location_description"], "STREET")
+        self.assertEqual(str(db.query_columns_history[0][0]), "crimes_location_daily_summary.location_description")
 
     def test_location_types_fall_back_to_raw_when_location_summary_missing(self):
         analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
@@ -242,6 +312,162 @@ class LayeredSummaryCapabilitiesTests(unittest.TestCase):
         )
 
         self.assertEqual(result, [{"primary_type": "THEFT", "count": 23, "key": "THEFT"}])
+        self.assertTrue(str(db.query_columns_history[0][0]).startswith("CrimeDailySummary."))
+
+    def test_seasonal_compare_uses_base_summary_when_extended_filters_are_absent(self):
+        analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
+            base_summary=True,
+            filter_summary=True,
+            location_summary=True,
+            daily_summary=False,
+        )
+        db = FakeSession(
+            [
+                [
+                    SimpleNamespace(month=12, primary_type="THEFT", count=40),
+                    SimpleNamespace(month=6, primary_type="BATTERY", count=20),
+                ]
+            ]
+        )
+
+        result = analytics_service.get_season_type_distribution(db, year=2023, limit_per_season=8)
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "season": "winter",
+                    "primary_type": "THEFT",
+                    "count": 40,
+                    "proportion": 1.0,
+                    "key": "winter-THEFT",
+                },
+                {
+                    "season": "summer",
+                    "primary_type": "BATTERY",
+                    "count": 20,
+                    "proportion": 1.0,
+                    "key": "summer-BATTERY",
+                },
+            ],
+        )
+        self.assertEqual(str(db.query_columns_history[0][0]), "crimes_summary.month")
+        self.assertEqual(str(db.query_columns_history[0][1]), "crimes_summary.primary_type")
+
+    def test_seasonal_compare_uses_daily_summary_for_custom_date_range(self):
+        analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
+            base_summary=True,
+            filter_summary=True,
+            location_summary=True,
+            daily_summary=True,
+        )
+        db = FakeSession(
+            [
+                [
+                    SimpleNamespace(month=1, primary_type="THEFT", count=10),
+                    SimpleNamespace(month=7, primary_type="BATTERY", count=15),
+                ]
+            ]
+        )
+
+        result = analytics_service.get_season_type_distribution(
+            db,
+            start_date=analytics_service.datetime(2023, 1, 15),
+            end_date=analytics_service.datetime(2023, 8, 31, 23, 59, 59),
+            limit_per_season=8,
+        )
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "season": "winter",
+                    "primary_type": "THEFT",
+                    "count": 10,
+                    "proportion": 1.0,
+                    "key": "winter-THEFT",
+                },
+                {
+                    "season": "summer",
+                    "primary_type": "BATTERY",
+                    "count": 15,
+                    "proportion": 1.0,
+                    "key": "summer-BATTERY",
+                },
+            ],
+        )
+        self.assertEqual(str(db.query_columns_history[0][0]), "crimes_daily_summary.crime_month")
+        self.assertEqual(str(db.query_columns_history[0][1]), "crimes_daily_summary.primary_type")
+
+    def test_district_type_breakdown_uses_base_summary_when_extended_filters_are_absent(self):
+        analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
+            base_summary=True,
+            filter_summary=True,
+            location_summary=True,
+            daily_summary=False,
+        )
+        db = FakeSession(
+            [
+                [SimpleNamespace(district="008", count=12)],
+                [SimpleNamespace(primary_type="THEFT", count=7)],
+                [SimpleNamespace(district="008", primary_type="THEFT", count=7)],
+            ]
+        )
+
+        result = analytics_service.get_district_type_breakdown(
+            db,
+            year=2023,
+            district_limit=8,
+            type_limit=3,
+        )
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "district": "008",
+                    "primary_type": "THEFT",
+                    "count": 7,
+                    "key": "008-THEFT",
+                }
+            ],
+        )
+        self.assertTrue(str(db.query_columns_history[0][0]).startswith("CrimeSummary."))
+
+    def test_district_type_breakdown_uses_daily_summary_for_custom_date_range(self):
+        analytics_service._summary_capabilities = analytics_service.SummaryCapabilities(
+            base_summary=True,
+            filter_summary=True,
+            location_summary=True,
+            daily_summary=True,
+        )
+        db = FakeSession(
+            [
+                [SimpleNamespace(district="008", count=12)],
+                [SimpleNamespace(primary_type="THEFT", count=7)],
+                [SimpleNamespace(district="008", primary_type="THEFT", count=7)],
+            ]
+        )
+
+        result = analytics_service.get_district_type_breakdown(
+            db,
+            start_date=analytics_service.datetime(2023, 3, 1),
+            end_date=analytics_service.datetime(2023, 8, 31, 23, 59, 59),
+            district_limit=8,
+            type_limit=3,
+        )
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "district": "008",
+                    "primary_type": "THEFT",
+                    "count": 7,
+                    "key": "008-THEFT",
+                }
+            ],
+        )
         self.assertTrue(str(db.query_columns_history[0][0]).startswith("CrimeDailySummary."))
 
 

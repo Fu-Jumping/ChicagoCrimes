@@ -3,8 +3,8 @@
  */
 
 export const SETUP_BACKEND_ORIGIN =
-  (import.meta as ImportMeta & { env?: { VITE_BACKEND_ORIGIN?: string } }).env?.VITE_BACKEND_ORIGIN ??
-  'http://127.0.0.1:8000'
+  (import.meta as ImportMeta & { env?: { VITE_BACKEND_ORIGIN?: string } }).env
+    ?.VITE_BACKEND_ORIGIN ?? 'http://127.0.0.1:8000'
 
 export interface SetupStatusResponse {
   database_configured: boolean
@@ -167,7 +167,9 @@ export async function streamImportCsv(
   )
 }
 
-export async function streamBuildSummaries(onEvent: (data: Record<string, unknown>) => void): Promise<void> {
+export async function streamBuildSummaries(
+  onEvent: (data: Record<string, unknown>) => void
+): Promise<void> {
   await consumeSetupSse('/api/setup/build-summaries/stream', {}, onEvent)
 }
 

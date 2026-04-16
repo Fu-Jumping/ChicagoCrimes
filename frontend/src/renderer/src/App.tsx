@@ -51,13 +51,37 @@ function AppContent({ onResetSetup }: { onResetSetup: () => void }): JSX.Element
 
 type GatePhase = 'loading' | 'backend_down' | 'wizard' | 'app'
 
-async function checkBackendReachable(): Promise<boolean> {
-  try {
-    const r = await fetch('http://127.0.0.1:8000/api/setup/status', { signal: AbortSignal.timeout(4000) })
-    return r.ok || r.status < 500
-  } catch {
-    return false
+const BACKEND_STARTUP_GRACE_MS = 15000
+const BACKEND_RETRY_INTERVAL_MS = 500
+const BACKEND_REQUEST_TIMEOUT_MS = 1500
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => window.setTimeout(resolve, ms))
+
+async function waitForBackendReachable(
+  isCancelled: () => boolean,
+  totalTimeoutMs = BACKEND_STARTUP_GRACE_MS
+): Promise<boolean> {
+  const startedAt = Date.now()
+  while (!isCancelled()) {
+    try {
+      const r = await fetch('http://127.0.0.1:8000/api/setup/status', {
+        signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS)
+      })
+      if (r.ok || r.status < 500) {
+        return true
+      }
+    } catch {
+      /* backend is still starting */
+    }
+
+    const elapsed = Date.now() - startedAt
+    if (elapsed >= totalTimeoutMs) {
+      return false
+    }
+    await sleep(Math.min(BACKEND_RETRY_INTERVAL_MS, totalTimeoutMs - elapsed))
   }
+  return false
 }
 
 function BackendDownScreen({ onRetry }: { onRetry: () => void }): JSX.Element {
@@ -81,25 +105,37 @@ function BackendDownScreen({ onRetry }: { onRetry: () => void }): JSX.Element {
     >
       <div style={{ maxWidth: 600, width: '100%' }}>
         <Spin spinning={false}>
-          <div style={{ background: 'rgba(255,80,80,0.08)', borderRadius: 12, padding: 32, border: '1px solid rgba(255,80,80,0.25)' }}>
+          <div
+            style={{
+              background: 'rgba(255,80,80,0.08)',
+              borderRadius: 12,
+              padding: 32,
+              border: '1px solid rgba(255,80,80,0.25)'
+            }}
+          >
             <Typography.Title level={4} style={{ color: '#ff6b6b', marginTop: 0 }}>
               ⚠ 无法连接到后端服务
             </Typography.Title>
             <Typography.Paragraph style={{ color: '#c8d0e8', marginBottom: 16 }}>
-              应用前端已就绪，但无法连接到本地后端（<Typography.Text code>http://127.0.0.1:8000</Typography.Text>）。
-              需要先启动 Python 后端服务，再使用本应用。
+              应用前端已就绪，但无法连接到本地后端（
+              <Typography.Text code>http://127.0.0.1:8000</Typography.Text>）。 需要先启动 Python
+              后端服务，再使用本应用。
             </Typography.Paragraph>
-            <Typography.Title level={5} style={{ color: '#8899cc' }}>启动方法（在项目根目录执行）</Typography.Title>
-            <pre style={{
-              background: 'rgba(0,0,0,0.4)',
-              borderRadius: 8,
-              padding: '12px 16px',
-              color: '#a8e6cf',
-              fontSize: 13,
-              marginBottom: 16,
-              whiteSpace: 'pre-wrap'
-            }}>
-{`# 1. 激活 Python 虚拟环境
+            <Typography.Title level={5} style={{ color: '#8899cc' }}>
+              启动方法（在项目根目录执行）
+            </Typography.Title>
+            <pre
+              style={{
+                background: 'rgba(0,0,0,0.4)',
+                borderRadius: 8,
+                padding: '12px 16px',
+                color: '#a8e6cf',
+                fontSize: 13,
+                marginBottom: 16,
+                whiteSpace: 'pre-wrap'
+              }}
+            >
+              {`# 1. 激活 Python 虚拟环境
 .venv\\Scripts\\activate
 
 # 2. 启动后端（在项目根目录）
@@ -110,8 +146,11 @@ cd backend
 uvicorn main:app --host 127.0.0.1 --port 8000`}
             </pre>
             <Typography.Paragraph style={{ color: '#8899cc', fontSize: 12 }}>
-              后端启动成功后会显示 <Typography.Text code style={{ fontSize: 12 }}>Uvicorn running on http://127.0.0.1:8000</Typography.Text>，
-              之后点击下方重试按钮继续。
+              后端启动成功后会显示{' '}
+              <Typography.Text code style={{ fontSize: 12 }}>
+                Uvicorn running on http://127.0.0.1:8000
+              </Typography.Text>
+              ， 之后点击下方重试按钮继续。
             </Typography.Paragraph>
             <Button
               type="primary"
@@ -138,7 +177,7 @@ function SetupGate(): JSX.Element {
     let cancelled = false
     setPhase('loading')
     ;(async () => {
-      const reachable = await checkBackendReachable()
+      const reachable = await waitForBackendReachable(() => cancelled)
       if (cancelled) return
       if (!reachable) {
         setPhase('backend_down')

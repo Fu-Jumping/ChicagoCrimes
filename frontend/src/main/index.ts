@@ -11,7 +11,7 @@ const APP_USER_MODEL_ID = 'com.chicago-crime.visualization'
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
 
 function startBackend(): void {
-  if (is.dev) return  // dev mode: backend is started manually via `python start.py dev`
+  if (is.dev) return // dev mode: backend is started manually via `python start.py dev`
 
   // In the packaged installer, backend.exe is copied to resources/backend/ by electron-builder.
   // process.resourcesPath points to the <install_dir>/resources directory.
@@ -27,10 +27,10 @@ function startBackend(): void {
     // Tell the backend where to write .env and logs (user-writable AppData)
     env: {
       ...process.env,
-      CHICAGO_CRIME_DATA_DIR: app.getPath('userData'),
+      CHICAGO_CRIME_DATA_DIR: app.getPath('userData')
     },
     stdio: 'pipe',
-    windowsHide: true,
+    windowsHide: true
   })
   backendProcess = proc
   proc.stdout?.on('data', (d) => console.log(`[backend] ${String(d).trim()}`))
@@ -134,8 +134,7 @@ if (!gotSingleInstanceLock) {
           const fs = await import('fs/promises')
           const stat = await fs.stat(filePath)
           size = stat.size
-        } catch {
-        }
+        } catch {}
       }
       return { canceled, path: filePath, size }
     })
@@ -147,10 +146,7 @@ if (!gotSingleInstanceLock) {
 
     ipcMain.handle(
       'setup-store-set',
-      (
-        _event,
-        patch: Partial<{ setupCompleted: boolean; lastCsvPath: string }>
-      ): void => {
+      (_event, patch: Partial<{ setupCompleted: boolean; lastCsvPath: string }>): void => {
         if (typeof patch.setupCompleted === 'boolean') {
           setupStore.set('setupCompleted', patch.setupCompleted)
         }

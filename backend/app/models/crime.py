@@ -76,6 +76,35 @@ class CrimeLocationSummary(Base):
     crime_count = Column(Integer, nullable=False, default=0)
 
 
+class CrimeLocationRollupSummary(Base):
+    __tablename__ = "crimes_location_rollup_summary"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    location_description = Column(String(255), nullable=False, default="")
+    crime_count = Column(Integer, nullable=False, default=0)
+
+
+class CrimeLocationPeriodSummary(Base):
+    __tablename__ = "crimes_location_period_summary"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    year = Column(SmallInteger, nullable=False, index=True)
+    month = Column(SmallInteger, nullable=False)
+    location_description = Column(String(255), nullable=False, default="")
+    crime_count = Column(Integer, nullable=False, default=0)
+
+
+class CrimeLocationDailySummary(Base):
+    __tablename__ = "crimes_location_daily_summary"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    crime_date = Column(Date, nullable=False, index=True)
+    crime_year = Column(SmallInteger, nullable=False, index=True)
+    crime_month = Column(SmallInteger, nullable=False)
+    location_description = Column(String(255), nullable=False, default="")
+    crime_count = Column(Integer, nullable=False, default=0)
+
+
 class CrimeDailySummary(Base):
     __tablename__ = "crimes_daily_summary"
 

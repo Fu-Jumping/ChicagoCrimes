@@ -1,4 +1,5 @@
 import logging
+from calendar import monthrange
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -7,12 +8,24 @@ from sqlalchemy import asc, case, desc, func, inspect
 from sqlalchemy.orm import Session
 
 from app.database import engine
-from app.models.crime import Crime, CrimeDailySummary, CrimeFilterSummary, CrimeLocationSummary, CrimeSummary
+from app.models.crime import (
+    Crime,
+    CrimeDailySummary,
+    CrimeFilterSummary,
+    CrimeLocationDailySummary,
+    CrimeLocationPeriodSummary,
+    CrimeLocationRollupSummary,
+    CrimeLocationSummary,
+    CrimeSummary,
+)
 
 B = CrimeSummary
 D = CrimeDailySummary
 F = CrimeFilterSummary
 L = CrimeLocationSummary
+LD = CrimeLocationDailySummary
+LP = CrimeLocationPeriodSummary
+LR = CrimeLocationRollupSummary
 _logger = logging.getLogger("chicago_crime_api")
 
 _REQUIRED_SUMMARY_COLUMNS: Dict[str, set[str]] = {
@@ -57,6 +70,23 @@ _REQUIRED_SUMMARY_COLUMNS: Dict[str, set[str]] = {
         "domestic",
         "crime_count",
     },
+    "crimes_location_rollup_summary": {
+        "location_description",
+        "crime_count",
+    },
+    "crimes_location_period_summary": {
+        "year",
+        "month",
+        "location_description",
+        "crime_count",
+    },
+    "crimes_location_daily_summary": {
+        "crime_date",
+        "crime_year",
+        "crime_month",
+        "location_description",
+        "crime_count",
+    },
 }
 
 
@@ -66,9 +96,20 @@ class SummaryCapabilities:
     filter_summary: bool = False
     location_summary: bool = False
     daily_summary: bool = False
+    location_rollup_summary: bool = False
+    location_period_summary: bool = False
+    location_daily_summary: bool = False
 
     def any_available(self) -> bool:
-        return self.base_summary or self.filter_summary or self.location_summary or self.daily_summary
+        return (
+            self.base_summary
+            or self.filter_summary
+            or self.location_summary
+            or self.daily_summary
+            or self.location_rollup_summary
+            or self.location_period_summary
+            or self.location_daily_summary
+        )
 
 
 _summary_capabilities: Optional[SummaryCapabilities] = None
@@ -114,13 +155,25 @@ def get_summary_capabilities(force_refresh: bool = False) -> SummaryCapabilities
             daily_summary=_REQUIRED_SUMMARY_COLUMNS["crimes_daily_summary"].issubset(
                 table_columns.get("crimes_daily_summary", set())
             ),
+            location_rollup_summary=_REQUIRED_SUMMARY_COLUMNS["crimes_location_rollup_summary"].issubset(
+                table_columns.get("crimes_location_rollup_summary", set())
+            ),
+            location_period_summary=_REQUIRED_SUMMARY_COLUMNS["crimes_location_period_summary"].issubset(
+                table_columns.get("crimes_location_period_summary", set())
+            ),
+            location_daily_summary=_REQUIRED_SUMMARY_COLUMNS["crimes_location_daily_summary"].issubset(
+                table_columns.get("crimes_location_daily_summary", set())
+            ),
         )
         _logger.info(
-            "summary capabilities detected base=%s filter=%s location=%s daily=%s",
+            "summary capabilities detected base=%s filter=%s location=%s daily=%s location_rollup=%s location_period=%s location_daily=%s",
             _summary_capabilities.base_summary,
             _summary_capabilities.filter_summary,
             _summary_capabilities.location_summary,
             _summary_capabilities.daily_summary,
+            _summary_capabilities.location_rollup_summary,
+            _summary_capabilities.location_period_summary,
+            _summary_capabilities.location_daily_summary,
         )
     except Exception as exc:
         _summary_capabilities = SummaryCapabilities()
@@ -181,6 +234,61 @@ def _can_use_filter_summary_query(
     return start_date is None and end_date is None
 
 
+def _matches_single_filter_value(filter_value, expected: int) -> bool:
+    if filter_value is None:
+        return True
+    if isinstance(filter_value, list):
+        return len(filter_value) == 1 and int(filter_value[0]) == expected
+    return int(filter_value) == expected
+
+
+def _normalize_aligned_time_filters(
+    *,
+    year=None,
+    month=None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+):
+    if start_date is None or end_date is None:
+        return year, month, start_date, end_date
+
+    start_day = start_date.date()
+    end_day = end_date.date()
+
+    if (
+        start_day.year == end_day.year
+        and start_day.month == end_day.month
+        and start_day.day == 1
+        and end_day.day == monthrange(start_day.year, start_day.month)[1]
+        and _matches_single_filter_value(year, start_day.year)
+        and _matches_single_filter_value(month, start_day.month)
+    ):
+        return (
+            year if year is not None else start_day.year,
+            month if month is not None else start_day.month,
+            None,
+            None,
+        )
+
+    if (
+        start_day.year == end_day.year
+        and start_day.month == 1
+        and start_day.day == 1
+        and end_day.month == 12
+        and end_day.day == 31
+        and month is None
+        and _matches_single_filter_value(year, start_day.year)
+    ):
+        return (
+            year if year is not None else start_day.year,
+            month,
+            None,
+            None,
+        )
+
+    return year, month, start_date, end_date
+
+
 def _can_use_base_summary_query(
     *,
     start_date: Optional[datetime] = None,
@@ -210,6 +318,129 @@ def _can_use_location_summary_query(
         beat=beat,
         ward=ward,
         community_area=community_area,
+    )
+
+
+def _has_location_common_dimension_filters(
+    *,
+    primary_type=None,
+    district=None,
+    arrest=None,
+    domestic=None,
+) -> bool:
+    return any(value is not None for value in (primary_type, district, arrest, domestic))
+
+
+def _has_any_location_filters(
+    *,
+    year=None,
+    primary_type=None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    district=None,
+    arrest=None,
+    month=None,
+    beat=None,
+    ward=None,
+    community_area=None,
+    domestic=None,
+) -> bool:
+    return any(
+        value is not None
+        for value in (
+            year,
+            primary_type,
+            start_date,
+            end_date,
+            district,
+            arrest,
+            month,
+            beat,
+            ward,
+            community_area,
+            domestic,
+        )
+    )
+
+
+def _can_use_location_rollup_summary_query(
+    *,
+    year=None,
+    primary_type=None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    district=None,
+    arrest=None,
+    month=None,
+    beat=None,
+    ward=None,
+    community_area=None,
+    domestic=None,
+) -> bool:
+    return not _has_any_location_filters(
+        year=year,
+        primary_type=primary_type,
+        start_date=start_date,
+        end_date=end_date,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    )
+
+
+def _can_use_location_period_summary_query(
+    *,
+    year=None,
+    primary_type=None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    district=None,
+    arrest=None,
+    month=None,
+    beat=None,
+    ward=None,
+    community_area=None,
+    domestic=None,
+) -> bool:
+    if start_date is not None or end_date is not None:
+        return False
+    if _has_extended_filters(beat=beat, ward=ward, community_area=community_area):
+        return False
+    if _has_location_common_dimension_filters(
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        domestic=domestic,
+    ):
+        return False
+    return year is not None or month is not None
+
+
+def _can_use_location_daily_summary_query(
+    *,
+    primary_type=None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    district=None,
+    arrest=None,
+    beat=None,
+    ward=None,
+    community_area=None,
+    domestic=None,
+) -> bool:
+    if start_date is None or end_date is None:
+        return False
+    if _has_extended_filters(beat=beat, ward=ward, community_area=community_area):
+        return False
+    return not _has_location_common_dimension_filters(
+        primary_type=primary_type,
+        district=district,
+        arrest=arrest,
+        domestic=domestic,
     )
 
 
@@ -392,6 +623,38 @@ def _apply_daily_summary_filters(
         query = query.filter(D.crime_month.in_(month) if isinstance(month, list) else D.crime_month == month)
     if domestic is not None:
         query = query.filter(D.domestic.in_(domestic) if isinstance(domestic, list) else D.domestic == domestic)
+    return query
+
+
+def _apply_location_period_summary_filters(
+    query,
+    *,
+    year=None,
+    month=None,
+):
+    if year is not None:
+        query = query.filter(LP.year.in_(year) if isinstance(year, list) else LP.year == year)
+    if month is not None:
+        query = query.filter(LP.month.in_(month) if isinstance(month, list) else LP.month == month)
+    return query
+
+
+def _apply_location_daily_summary_filters(
+    query,
+    *,
+    year=None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    month=None,
+):
+    if year is not None:
+        query = query.filter(LD.crime_year.in_(year) if isinstance(year, list) else LD.crime_year == year)
+    if start_date is not None:
+        query = query.filter(LD.crime_date >= start_date.date())
+    if end_date is not None:
+        query = query.filter(LD.crime_date <= end_date.date())
+    if month is not None:
+        query = query.filter(LD.crime_month.in_(month) if isinstance(month, list) else LD.crime_month == month)
     return query
 
 
@@ -700,6 +963,12 @@ def get_types_proportion(
     community_area: Optional[int] = None,
     domestic: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
     sort_expr = desc("count") if sort == "desc" else asc("count")
     capabilities = get_summary_capabilities()
     summary_model = _select_summary_model_for_period(
@@ -781,6 +1050,12 @@ def get_districts_comparison(
     community_area: Optional[int] = None,
     domestic: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
     sort_expr = desc("count") if sort == "desc" else asc("count")
     capabilities = get_summary_capabilities()
     summary_model = _select_summary_model_for_period(
@@ -860,6 +1135,12 @@ def get_arrests_rate(
     community_area: Optional[int] = None,
     domestic: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
     capabilities = get_summary_capabilities()
     summary_model = _select_summary_model_for_period(
         capabilities=capabilities,
@@ -933,6 +1214,12 @@ def get_domestic_proportion(
     community_area: Optional[int] = None,
     domestic: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
     capabilities = get_summary_capabilities()
     summary_model = _select_summary_model_for_period(
         capabilities=capabilities,
@@ -1009,8 +1296,86 @@ def get_location_types_top(
     community_area: Optional[int] = None,
     domestic: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
     sort_expr = desc("count") if sort == "desc" else asc("count")
     capabilities = get_summary_capabilities()
+    if capabilities.location_rollup_summary and _can_use_location_rollup_summary_query(
+        year=year,
+        primary_type=primary_type,
+        start_date=start_date,
+        end_date=end_date,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    ):
+        location_column = LR.__table__.c.location_description
+        count_column = LR.__table__.c.crime_count
+        query = db.query(location_column, count_column.label("count"))
+        query = query.filter(location_column != "")
+        query = query.order_by(desc(count_column) if sort == "desc" else asc(count_column), asc(location_column)).limit(limit)
+        results = query.all()
+        data = [{"location_description": row.location_description, "count": int(row.count)} for row in results if row.location_description is not None]
+        return add_stable_key(data, "location_description")
+
+    if capabilities.location_period_summary and _can_use_location_period_summary_query(
+        year=year,
+        primary_type=primary_type,
+        start_date=start_date,
+        end_date=end_date,
+        district=district,
+        arrest=arrest,
+        month=month,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    ):
+        location_column = LP.__table__.c.location_description
+        query = db.query(location_column, func.sum(LP.crime_count).label("count"))
+        query = query.filter(location_column != "")
+        query = _apply_location_period_summary_filters(query, year=year, month=month)
+        query = query.group_by(location_column)
+        query = query.order_by(sort_expr, asc(location_column)).limit(limit)
+        results = query.all()
+        data = [{"location_description": row.location_description, "count": int(row.count)} for row in results if row.location_description is not None]
+        return add_stable_key(data, "location_description")
+
+    if capabilities.location_daily_summary and _can_use_location_daily_summary_query(
+        primary_type=primary_type,
+        start_date=start_date,
+        end_date=end_date,
+        district=district,
+        arrest=arrest,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+        domestic=domestic,
+    ):
+        location_column = LD.__table__.c.location_description
+        query = db.query(location_column, func.sum(LD.crime_count).label("count"))
+        query = query.filter(location_column != "")
+        query = _apply_location_daily_summary_filters(
+            query,
+            year=year,
+            start_date=start_date,
+            end_date=end_date,
+            month=month,
+        )
+        query = query.group_by(location_column)
+        query = query.order_by(sort_expr, asc(location_column)).limit(limit)
+        results = query.all()
+        data = [{"location_description": row.location_description, "count": int(row.count)} for row in results if row.location_description is not None]
+        return add_stable_key(data, "location_description")
+
     if capabilities.location_summary and _can_use_location_summary_query(
         start_date=start_date,
         end_date=end_date,
@@ -1074,6 +1439,12 @@ def get_types_arrest_rate(
     community_area: Optional[int] = None,
     domestic: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
     capabilities = get_summary_capabilities()
     summary_model = _select_summary_model_for_period(
         capabilities=capabilities,
@@ -1263,42 +1634,99 @@ def get_season_type_distribution(
     domestic: Optional[bool] = None,
     limit_per_season: int = 8,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
     season_months = {
         "winter": {12, 1, 2},
         "summer": {6, 7, 8},
     }
-    query = db.query(
-        Crime.crime_month.label("month"),
-        Crime.primary_type.label("primary_type"),
-        func.count(Crime.id).label("count"),
-    ).filter(Crime.primary_type.isnot(None), Crime.primary_type != "")
-    query = apply_filters(
-        query,
-        Crime,
-        year=year,
+    capabilities = get_summary_capabilities()
+    summary_model = _select_summary_model_for_period(
+        capabilities=capabilities,
         start_date=start_date,
         end_date=end_date,
-        district=district,
-        arrest=arrest,
-        month=month,
         beat=beat,
         ward=ward,
         community_area=community_area,
-        domestic=domestic,
     )
-    query = query.group_by(Crime.crime_month, Crime.primary_type)
+    if summary_model is D:
+        daily_month_column = D.__table__.c.crime_month
+        daily_type_column = D.__table__.c.primary_type
+        query = db.query(
+            daily_month_column,
+            daily_type_column,
+            func.sum(D.crime_count).label("count"),
+        ).filter(D.primary_type.isnot(None), D.primary_type != "")
+        query = _apply_daily_summary_filters(
+            query,
+            year=year,
+            start_date=start_date,
+            end_date=end_date,
+            district=district,
+            arrest=arrest,
+            month=month,
+            domestic=domestic,
+        )
+        query = query.group_by(daily_month_column, daily_type_column)
+    elif summary_model is not None:
+        summary_month_column = summary_model.__table__.c.month
+        summary_type_column = summary_model.__table__.c.primary_type
+        query = db.query(
+            summary_month_column,
+            summary_type_column,
+            func.sum(summary_model.crime_count).label("count"),
+        ).filter(summary_model.primary_type.isnot(None), summary_model.primary_type != "")
+        query = _apply_summary_filters(
+            query,
+            summary_model,
+            year=year,
+            district=district,
+            arrest=arrest,
+            month=month,
+            beat=beat,
+            ward=ward,
+            community_area=community_area,
+            domestic=domestic,
+        )
+        query = query.group_by(summary_month_column, summary_type_column)
+    else:
+        query = db.query(
+            Crime.crime_month.label("month"),
+            Crime.primary_type.label("primary_type"),
+            func.count(Crime.id).label("count"),
+        ).filter(Crime.primary_type.isnot(None), Crime.primary_type != "")
+        query = apply_filters(
+            query,
+            Crime,
+            year=year,
+            start_date=start_date,
+            end_date=end_date,
+            district=district,
+            arrest=arrest,
+            month=month,
+            beat=beat,
+            ward=ward,
+            community_area=community_area,
+            domestic=domestic,
+        )
+        query = query.group_by(Crime.crime_month, Crime.primary_type)
     results = query.all()
 
     season_type_counts: Dict[str, Dict[str, int]] = {"winter": {}, "summer": {}}
     season_totals: Dict[str, int] = {"winter": 0, "summer": 0}
 
     for row in results:
-        if row.month is None or not row.primary_type:
+        row_month = getattr(row, "month", getattr(row, "crime_month", None))
+        if row_month is None or not row.primary_type:
             continue
         season = None
-        if int(row.month) in season_months["winter"]:
+        if int(row_month) in season_months["winter"]:
             season = "winter"
-        elif int(row.month) in season_months["summer"]:
+        elif int(row_month) in season_months["summer"]:
             season = "summer"
         if season is None:
             continue
@@ -1380,6 +1808,148 @@ def get_district_type_breakdown(
     district_limit: int = 8,
     type_limit: int = 3,
 ) -> List[Dict[str, Any]]:
+    year, month, start_date, end_date = _normalize_aligned_time_filters(
+        year=year,
+        month=month,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    capabilities = get_summary_capabilities()
+    summary_model = _select_summary_model_for_period(
+        capabilities=capabilities,
+        start_date=start_date,
+        end_date=end_date,
+        beat=beat,
+        ward=ward,
+        community_area=community_area,
+    )
+    if summary_model is not None:
+        if summary_model is D:
+            district_query = db.query(D.district, func.sum(D.crime_count).label("count")).filter(
+                D.district.isnot(None), D.district != ""
+            )
+            district_query = _apply_daily_summary_filters(
+                district_query,
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                arrest=arrest,
+                month=month,
+                domestic=domestic,
+            )
+            district_query = district_query.group_by(D.district).order_by(desc("count"), asc(D.district)).limit(district_limit)
+            top_districts = [row.district for row in district_query.all() if row.district]
+            if not top_districts:
+                return []
+
+            type_query = db.query(D.primary_type, func.sum(D.crime_count).label("count")).filter(
+                D.primary_type.isnot(None), D.primary_type != "", D.district.in_(top_districts)
+            )
+            type_query = _apply_daily_summary_filters(
+                type_query,
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                arrest=arrest,
+                month=month,
+                domestic=domestic,
+            )
+            type_query = type_query.group_by(D.primary_type).order_by(desc("count"), asc(D.primary_type)).limit(type_limit)
+            top_types = [row.primary_type for row in type_query.all() if row.primary_type]
+            if not top_types:
+                return []
+
+            breakdown_query = db.query(
+                D.district,
+                D.primary_type,
+                func.sum(D.crime_count).label("count"),
+            ).filter(
+                D.district.in_(top_districts),
+                D.primary_type.in_(top_types),
+            )
+            breakdown_query = _apply_daily_summary_filters(
+                breakdown_query,
+                year=year,
+                start_date=start_date,
+                end_date=end_date,
+                arrest=arrest,
+                month=month,
+                domestic=domestic,
+            )
+            breakdown_query = breakdown_query.group_by(D.district, D.primary_type)
+        else:
+            district_query = db.query(summary_model.district, func.sum(summary_model.crime_count).label("count")).filter(
+                summary_model.district.isnot(None), summary_model.district != ""
+            )
+            district_query = _apply_summary_filters(
+                district_query,
+                summary_model,
+                year=year,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            )
+            district_query = district_query.group_by(summary_model.district).order_by(desc("count"), asc(summary_model.district)).limit(district_limit)
+            top_districts = [row.district for row in district_query.all() if row.district]
+            if not top_districts:
+                return []
+
+            type_query = db.query(summary_model.primary_type, func.sum(summary_model.crime_count).label("count")).filter(
+                summary_model.primary_type.isnot(None), summary_model.primary_type != "", summary_model.district.in_(top_districts)
+            )
+            type_query = _apply_summary_filters(
+                type_query,
+                summary_model,
+                year=year,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            )
+            type_query = type_query.group_by(summary_model.primary_type).order_by(desc("count"), asc(summary_model.primary_type)).limit(type_limit)
+            top_types = [row.primary_type for row in type_query.all() if row.primary_type]
+            if not top_types:
+                return []
+
+            breakdown_query = db.query(
+                summary_model.district,
+                summary_model.primary_type,
+                func.sum(summary_model.crime_count).label("count"),
+            ).filter(
+                summary_model.district.in_(top_districts),
+                summary_model.primary_type.in_(top_types),
+            )
+            breakdown_query = _apply_summary_filters(
+                breakdown_query,
+                summary_model,
+                year=year,
+                arrest=arrest,
+                month=month,
+                beat=beat,
+                ward=ward,
+                community_area=community_area,
+                domestic=domestic,
+            )
+            breakdown_query = breakdown_query.group_by(summary_model.district, summary_model.primary_type)
+
+        results = breakdown_query.all()
+        data = [
+            {
+                "district": row.district,
+                "primary_type": row.primary_type,
+                "count": int(row.count),
+                "key": f"{row.district}-{row.primary_type}",
+            }
+            for row in results
+            if row.district and row.primary_type
+        ]
+        return sorted(data, key=lambda item: (top_districts.index(item["district"]), -item["count"], item["primary_type"]))
+
     district_query = db.query(Crime.district, func.count(Crime.id).label("count")).filter(
         Crime.district.isnot(None), Crime.district != ""
     )

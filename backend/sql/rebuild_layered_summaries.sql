@@ -5,8 +5,14 @@
 -- - crimes_summary
 -- - crimes_filter_summary
 -- - crimes_location_summary
+-- - crimes_location_rollup_summary
+-- - crimes_location_period_summary
+-- - crimes_location_daily_summary
 -- - crimes_daily_summary
 
+DROP TABLE IF EXISTS crimes_location_daily_summary;
+DROP TABLE IF EXISTS crimes_location_period_summary;
+DROP TABLE IF EXISTS crimes_location_rollup_summary;
 DROP TABLE IF EXISTS crimes_daily_summary;
 DROP TABLE IF EXISTS crimes_location_summary;
 DROP TABLE IF EXISTS crimes_filter_summary;
@@ -196,6 +202,89 @@ GROUP BY
   COALESCE(c.arrest, 0),
   COALESCE(c.domestic, 0);
 
+CREATE TABLE crimes_location_rollup_summary (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  location_description VARCHAR(255) NOT NULL DEFAULT '',
+  crime_count INT UNSIGNED NOT NULL DEFAULT 0,
+  UNIQUE KEY uq_crimes_location_rollup_summary_location (location_description),
+  KEY idx_location_rollup_count (crime_count)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO crimes_location_rollup_summary (
+  location_description,
+  crime_count
+)
+SELECT
+  COALESCE(c.location_description, ''),
+  COUNT(*) AS crime_count
+FROM crimes c
+WHERE c.date IS NOT NULL
+GROUP BY COALESCE(c.location_description, '');
+
+CREATE TABLE crimes_location_period_summary (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  year SMALLINT UNSIGNED NOT NULL,
+  month TINYINT UNSIGNED NOT NULL,
+  location_description VARCHAR(255) NOT NULL DEFAULT '',
+  crime_count INT UNSIGNED NOT NULL DEFAULT 0,
+  UNIQUE KEY uq_crimes_location_period_summary_dimensions (year, month, location_description),
+  KEY idx_location_period_year_month (year, month),
+  KEY idx_location_period_year_location (year, location_description)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO crimes_location_period_summary (
+  year,
+  month,
+  location_description,
+  crime_count
+)
+SELECT
+  c.year,
+  MONTH(c.date) AS month,
+  COALESCE(c.location_description, ''),
+  COUNT(*) AS crime_count
+FROM crimes c
+WHERE c.year IS NOT NULL
+  AND c.date IS NOT NULL
+GROUP BY
+  c.year,
+  MONTH(c.date),
+  COALESCE(c.location_description, '');
+
+CREATE TABLE crimes_location_daily_summary (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  crime_date DATE NOT NULL,
+  crime_year SMALLINT UNSIGNED NOT NULL,
+  crime_month TINYINT UNSIGNED NOT NULL,
+  location_description VARCHAR(255) NOT NULL DEFAULT '',
+  crime_count INT UNSIGNED NOT NULL DEFAULT 0,
+  UNIQUE KEY uq_crimes_location_daily_summary_dimensions (crime_date, location_description),
+  KEY idx_location_daily_date (crime_date),
+  KEY idx_location_daily_year_month (crime_year, crime_month),
+  KEY idx_location_daily_date_location (crime_date, location_description)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO crimes_location_daily_summary (
+  crime_date,
+  crime_year,
+  crime_month,
+  location_description,
+  crime_count
+)
+SELECT
+  DATE(c.date) AS crime_date,
+  YEAR(c.date) AS crime_year,
+  MONTH(c.date) AS crime_month,
+  COALESCE(c.location_description, ''),
+  COUNT(*) AS crime_count
+FROM crimes c
+WHERE c.date IS NOT NULL
+GROUP BY
+  DATE(c.date),
+  YEAR(c.date),
+  MONTH(c.date),
+  COALESCE(c.location_description, '');
+
 CREATE TABLE crimes_daily_summary (
   id INT AUTO_INCREMENT PRIMARY KEY,
   crime_date DATE NOT NULL,
@@ -254,9 +343,15 @@ GROUP BY
 ANALYZE TABLE crimes_summary;
 ANALYZE TABLE crimes_filter_summary;
 ANALYZE TABLE crimes_location_summary;
+ANALYZE TABLE crimes_location_rollup_summary;
+ANALYZE TABLE crimes_location_period_summary;
+ANALYZE TABLE crimes_location_daily_summary;
 ANALYZE TABLE crimes_daily_summary;
 
 SELECT CONCAT('crimes_summary rows: ', COUNT(*)) AS status FROM crimes_summary;
 SELECT CONCAT('crimes_filter_summary rows: ', COUNT(*)) AS status FROM crimes_filter_summary;
 SELECT CONCAT('crimes_location_summary rows: ', COUNT(*)) AS status FROM crimes_location_summary;
+SELECT CONCAT('crimes_location_rollup_summary rows: ', COUNT(*)) AS status FROM crimes_location_rollup_summary;
+SELECT CONCAT('crimes_location_period_summary rows: ', COUNT(*)) AS status FROM crimes_location_period_summary;
+SELECT CONCAT('crimes_location_daily_summary rows: ', COUNT(*)) AS status FROM crimes_location_daily_summary;
 SELECT CONCAT('crimes_daily_summary rows: ', COUNT(*)) AS status FROM crimes_daily_summary;

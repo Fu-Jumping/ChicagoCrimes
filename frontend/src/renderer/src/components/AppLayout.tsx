@@ -611,14 +611,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
               <div className="urban-sidebar__scroll">
                 <section className="sidebar-page-section sidebar-panel">
                   <div className="sidebar-page-heading">
-                    <div className="sidebar-page-badge"><FilterOutlined /></div>
+                    <div className="sidebar-page-badge">
+                      <FilterOutlined />
+                    </div>
                     <div className="sidebar-page-copy">
                       <div className="sidebar-page-label">GLOBAL FILTERS</div>
                       <div className="sidebar-page-title">全局数据筛选</div>
                       <div className="sidebar-page-eyebrow">多维度联动控制</div>
                     </div>
                   </div>
-                  <p className="sidebar-page-desc">通过以下条件过滤整个应用的数据分析范围，所有图表与地图将实时联动更新。</p>
+                  <p className="sidebar-page-desc">
+                    通过以下条件过滤整个应用的数据分析范围，所有图表与地图将实时联动更新。
+                  </p>
                 </section>
 
                 {SIDEBAR_FILTER_GROUPS.map((group) => (
@@ -806,7 +810,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
                   </div>
                   <img src={appIcon} alt="Logo" className="brand-panel__logo" />
                 </div>
-                
+
                 <div className="header-logo-divider" />
               </div>
             </header>

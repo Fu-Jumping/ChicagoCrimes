@@ -72,6 +72,107 @@ _performance_indexes: list[str] = [
     "CREATE INDEX idx_block ON crimes (block)",
 ]
 
+_location_rollup_summary_statements: tuple[str, ...] = (
+    """
+    CREATE TABLE crimes_location_rollup_summary (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      location_description VARCHAR(255) NOT NULL DEFAULT '',
+      crime_count INT UNSIGNED NOT NULL DEFAULT 0,
+      UNIQUE KEY uq_crimes_location_rollup_summary_location (location_description),
+      KEY idx_location_rollup_count (crime_count)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+    """.strip(),
+    """
+    INSERT INTO crimes_location_rollup_summary (
+      location_description,
+      crime_count
+    )
+    SELECT
+      COALESCE(c.location_description, ''),
+      COUNT(*) AS crime_count
+    FROM crimes c
+    WHERE c.date IS NOT NULL
+    GROUP BY COALESCE(c.location_description, '')
+    """.strip(),
+    "ANALYZE TABLE crimes_location_rollup_summary",
+)
+
+_location_period_summary_statements: tuple[str, ...] = (
+    """
+    CREATE TABLE crimes_location_period_summary (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      year SMALLINT UNSIGNED NOT NULL,
+      month TINYINT UNSIGNED NOT NULL,
+      location_description VARCHAR(255) NOT NULL DEFAULT '',
+      crime_count INT UNSIGNED NOT NULL DEFAULT 0,
+      UNIQUE KEY uq_crimes_location_period_summary_dimensions (year, month, location_description),
+      KEY idx_location_period_year_month (year, month),
+      KEY idx_location_period_year_location (year, location_description)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+    """.strip(),
+    """
+    INSERT INTO crimes_location_period_summary (
+      year,
+      month,
+      location_description,
+      crime_count
+    )
+    SELECT
+      c.year,
+      MONTH(c.date) AS month,
+      COALESCE(c.location_description, ''),
+      COUNT(*) AS crime_count
+    FROM crimes c
+    WHERE c.year IS NOT NULL
+      AND c.date IS NOT NULL
+    GROUP BY
+      c.year,
+      MONTH(c.date),
+      COALESCE(c.location_description, '')
+    """.strip(),
+    "ANALYZE TABLE crimes_location_period_summary",
+)
+
+_location_daily_summary_statements: tuple[str, ...] = (
+    """
+    CREATE TABLE crimes_location_daily_summary (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      crime_date DATE NOT NULL,
+      crime_year SMALLINT UNSIGNED NOT NULL,
+      crime_month TINYINT UNSIGNED NOT NULL,
+      location_description VARCHAR(255) NOT NULL DEFAULT '',
+      crime_count INT UNSIGNED NOT NULL DEFAULT 0,
+      UNIQUE KEY uq_crimes_location_daily_summary_dimensions (crime_date, location_description),
+      KEY idx_location_daily_date (crime_date),
+      KEY idx_location_daily_year_month (crime_year, crime_month),
+      KEY idx_location_daily_date_location (crime_date, location_description)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+    """.strip(),
+    """
+    INSERT INTO crimes_location_daily_summary (
+      crime_date,
+      crime_year,
+      crime_month,
+      location_description,
+      crime_count
+    )
+    SELECT
+      DATE(c.date) AS crime_date,
+      YEAR(c.date) AS crime_year,
+      MONTH(c.date) AS crime_month,
+      COALESCE(c.location_description, ''),
+      COUNT(*) AS crime_count
+    FROM crimes c
+    WHERE c.date IS NOT NULL
+    GROUP BY
+      DATE(c.date),
+      YEAR(c.date),
+      MONTH(c.date),
+      COALESCE(c.location_description, '')
+    """.strip(),
+    "ANALYZE TABLE crimes_location_daily_summary",
+)
+
 _derived_columns_to_replace: tuple[str, ...] = (
     "crime_month",
     "crime_dow",
@@ -614,6 +715,71 @@ def load_sql_statements(sql_path: Path) -> list[str]:
     return [s for s in statements if s]
 
 
+def _run_sql_statements(statements: tuple[str, ...]) -> None:
+    if _db.engine is None:
+        raise RuntimeError("Database engine not configured")
+    with _db.engine.begin() as conn:
+        for statement in statements:
+            conn.exec_driver_sql(statement)
+
+
+def _build_location_rollup_summary() -> None:
+    _run_sql_statements(_location_rollup_summary_statements)
+
+
+def _build_location_period_summary() -> None:
+    _run_sql_statements(_location_period_summary_statements)
+
+
+def _build_location_daily_summary() -> None:
+    _run_sql_statements(_location_daily_summary_statements)
+
+
+_CORE_SUMMARY_TABLES = [
+    "crimes_summary",
+    "crimes_filter_summary",
+    "crimes_location_summary",
+    "crimes_daily_summary",
+]
+
+def _optional_location_summary_builders() -> dict[str, Callable[[], None]]:
+    return {
+        "crimes_location_rollup_summary": _build_location_rollup_summary,
+        "crimes_location_period_summary": _build_location_period_summary,
+        "crimes_location_daily_summary": _build_location_daily_summary,
+    }
+
+
+_OPTIONAL_LOCATION_SUMMARY_TABLES = list(_optional_location_summary_builders().keys())
+
+
+def ensure_optional_location_fast_summaries() -> dict[str, Any]:
+    if _db.engine is None:
+        return {"built": [], "skipped": "database_not_configured"}
+
+    insp = inspect(_db.engine)
+    if not insp.has_table("crimes"):
+        return {"built": [], "skipped": "crimes_missing"}
+    if not all(insp.has_table(table_name) for table_name in _CORE_SUMMARY_TABLES):
+        return {"built": [], "skipped": "core_summaries_missing"}
+
+    missing_tables = [
+        table_name
+        for table_name in _OPTIONAL_LOCATION_SUMMARY_TABLES
+        if not insp.has_table(table_name)
+    ]
+    if not missing_tables:
+        return {"built": [], "skipped": "already_ready"}
+
+    builders = _optional_location_summary_builders()
+    for table_name in missing_tables:
+        builders[table_name]()
+
+    reset_summary_capabilities_cache()
+    log.info("optional_location_fast_summaries_built tables=%s", missing_tables)
+    return {"built": missing_tables, "skipped": None}
+
+
 def rebuild_layered_summaries_stream() -> Iterator[dict[str, Any]]:
     if _db.engine is None:
         raise RuntimeError("Database engine not configured")
@@ -650,15 +816,7 @@ def setup_status_from_db() -> dict[str, Any]:
         if has_crimes:
             with _db.engine.connect() as conn:
                 row_count = conn.execute(text("SELECT COUNT(*) FROM crimes")).scalar() or 0
-        summaries = all(
-            insp.has_table(t)
-            for t in (
-                "crimes_summary",
-                "crimes_filter_summary",
-                "crimes_location_summary",
-                "crimes_daily_summary",
-            )
-        )
+        summaries = all(insp.has_table(t) for t in _CORE_SUMMARY_TABLES)
         percent = 0
         if has_crimes:
             percent = 25
@@ -731,12 +889,7 @@ def build_all_summaries_with_queue(q: queue.Queue) -> None:
         q.put(None)
 
 
-_SUMMARY_TABLES = [
-    "crimes_summary",
-    "crimes_filter_summary",
-    "crimes_location_summary",
-    "crimes_daily_summary",
-]
+_SUMMARY_TABLES = [*_CORE_SUMMARY_TABLES, *_OPTIONAL_LOCATION_SUMMARY_TABLES]
 
 
 def reset_setup_data() -> dict[str, Any]:

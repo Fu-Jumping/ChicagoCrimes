@@ -1,14 +1,4 @@
-import {
-  Alert,
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  Progress,
-  Space,
-  Steps,
-  Typography
-} from 'antd'
+import { Alert, Button, Form, Input, InputNumber, Progress, Space, Steps, Typography } from 'antd'
 import type { JSX } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { saveAs } from 'file-saver'
@@ -426,13 +416,21 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
               <Form.Item name="password" label={t('setup.dbFormPassword')}>
                 <Input.Password autoComplete="current-password" placeholder="无密码可留空" />
               </Form.Item>
-              <Form.Item name="database" label={t('setup.dbFormDatabase')} rules={[{ required: true }]}>
+              <Form.Item
+                name="database"
+                label={t('setup.dbFormDatabase')}
+                rules={[{ required: true }]}
+              >
                 <Input />
               </Form.Item>
             </Form>
             {connOk === true && <Alert type="success" message={t('setup.connOk')} />}
             {connOk === false && (
-              <Alert type="error" message={t('setup.connFail')} description={connError || undefined} />
+              <Alert
+                type="error"
+                message={t('setup.connFail')}
+                description={connError || undefined}
+              />
             )}
             {connOk === true && dbExists === false && (
               <Alert type="info" message={t('setup.dbMissingHint')} />
@@ -505,14 +503,17 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
               description="LOAD DATA 阶段进度条可能长时间停在 0%，这是 MySQL 事务机制导致的正常现象。1.7GB 文件预计需 5–20 分钟，请耐心等待，不要关闭窗口。"
               style={{ marginBottom: 8 }}
             />
-            <Progress percent={importPct ?? 0} status={busy ? 'active' : importDone ? 'success' : 'normal'} />
-            {importRows !== null && (
-              <Text>
-                已导入约 {importRows.toLocaleString()} 行
-              </Text>
-            )}
+            <Progress
+              percent={importPct ?? 0}
+              status={busy ? 'active' : importDone ? 'success' : 'normal'}
+            />
+            {importRows !== null && <Text>已导入约 {importRows.toLocaleString()} 行</Text>}
             {importDone && (
-              <Alert type="success" showIcon message={`导入成功！共 ${(importRows ?? 0).toLocaleString()} 行数据。`} />
+              <Alert
+                type="success"
+                showIcon
+                message={`导入成功！共 ${(importRows ?? 0).toLocaleString()} 行数据。`}
+              />
             )}
             {importError && (
               <Alert
@@ -520,7 +521,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
                 showIcon
                 message="导入失败"
                 description={
-                  <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, margin: 0 }}>{importError}</pre>
+                  <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, margin: 0 }}>
+                    {importError}
+                  </pre>
                 }
               />
             )}
@@ -528,7 +531,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
               {t('setup.startImport')}
             </Button>
             <Space>
-              <Button onClick={() => setCurrent(3)} disabled={busy}>{t('setup.back')}</Button>
+              <Button onClick={() => setCurrent(3)} disabled={busy}>
+                {t('setup.back')}
+              </Button>
               <Button type="primary" onClick={() => setCurrent(5)} disabled={!importDone}>
                 {t('setup.next')}
               </Button>
@@ -538,7 +543,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
 
         {current === 5 && (
           <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-            <Progress percent={buildPct ?? 0} status={busy ? 'active' : buildPct === 100 ? 'success' : 'normal'} />
+            <Progress
+              percent={buildPct ?? 0}
+              status={busy ? 'active' : buildPct === 100 ? 'success' : 'normal'}
+            />
             {buildLabel && <Text type="secondary">{buildLabel}</Text>}
             {busy && <Paragraph type="secondary">{t('setup.buildRunning')}</Paragraph>}
             {!busy && !buildError && buildPct !== 100 && (
@@ -550,7 +558,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
                 showIcon
                 message="构建失败"
                 description={
-                  <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, margin: 0 }}>{buildError}</pre>
+                  <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, margin: 0 }}>
+                    {buildError}
+                  </pre>
                 }
               />
             )}

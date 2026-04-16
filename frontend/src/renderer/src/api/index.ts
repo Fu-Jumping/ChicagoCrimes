@@ -585,7 +585,9 @@ export const analyticsApi = {
       analyticsApi.getDistrictsComparison({ limit: 10 }),
       analyticsApi.getArrestsRate(),
       analyticsApi.getYearlyTrend({ domestic: [true] }),
-      analyticsApi.getTypesSeasonalCompare({ limit: 8 })
+      analyticsApi.getTypesSeasonalCompare({ limit: 8 }),
+      analyticsApi.getCommunityTop10({ limit: 10 }),
+      analyticsApi.getCaseNumberQuality()
     ])
       .catch(() => undefined)
       .then(() => undefined)

@@ -10,13 +10,18 @@ import InsightCard from '../components/InsightCard'
 import { useGlobalFilters } from '../hooks/useGlobalFilters'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { t } from '../i18n'
-import { normalizeSeriesData, type GenericRow, type NormalizedChartResult } from '../utils/chartData'
+import {
+  normalizeSeriesData,
+  type GenericRow,
+  type NormalizedChartResult
+} from '../utils/chartData'
 import { buildAnalyticsFilterParams } from '../utils/filterParams'
 import { translateCrimeType } from '../utils/crimeTypeMap'
 import { translateLocationType } from '../utils/locationTypeMap'
 
 const weekdayLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 const REQUIREMENTS_REQUEST_TIMEOUT_MS = 10000
+const SEASONAL_COMPARE_REQUEST_TIMEOUT_MS = 25000
 
 const toNumber = (value: unknown): number =>
   typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : 0
@@ -99,7 +104,10 @@ const buildArrestRows = (rows: Record<string, unknown>[]): Record<string, unknow
     status: row.arrest === true ? '已逮捕' : row.arrest === false ? '未逮捕' : '未知'
   }))
 
-const withRequestTimeout = <T,>(request: Promise<T>, timeoutMs = REQUIREMENTS_REQUEST_TIMEOUT_MS): Promise<T> =>
+const withRequestTimeout = <T,>(
+  request: Promise<T>,
+  timeoutMs = REQUIREMENTS_REQUEST_TIMEOUT_MS
+): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     const timer = window.setTimeout(() => {
       reject(new Error('request_timeout'))
@@ -117,7 +125,9 @@ const withRequestTimeout = <T,>(request: Promise<T>, timeoutMs = REQUIREMENTS_RE
 
 const RequirementsAnalysis: React.FC = () => {
   const { filters } = useGlobalFilters()
-  const [loading, setLoading] = useState(true)
+  const [primaryLoading, setPrimaryLoading] = useState(true)
+  const [secondaryLoading, setSecondaryLoading] = useState(true)
+  const [seasonalLoading, setSeasonalLoading] = useState(true)
   const [error, setError] = useState<NormalizedApiError | null>(null)
   const [yearlyResult, setYearlyResult] = useState<NormalizedChartResult>({
     data: [],
@@ -159,90 +169,91 @@ const RequirementsAnalysis: React.FC = () => {
     data: [],
     downgradedCount: 0
   })
+  const [communityTopResult, setCommunityTopResult] = useState<NormalizedChartResult>({
+    data: [],
+    downgradedCount: 0
+  })
+  const [caseQualityResult, setCaseQualityResult] = useState<NormalizedChartResult>({
+    data: [],
+    downgradedCount: 0
+  })
   const [seasonSeries, setSeasonSeries] = useState<ChartSeries[]>([])
 
   const requestParams = useMemo(() => buildAnalyticsFilterParams(filters), [filters])
   const debouncedRequestParams = useDebouncedValue(requestParams, 160)
 
   const fetchData = useCallback(async (): Promise<void> => {
-    setLoading(true)
+    setPrimaryLoading(true)
+    setSecondaryLoading(true)
+    setSeasonalLoading(true)
     setError(null)
     try {
-      const settledResults = await Promise.allSettled([
+      const primaryResults = await Promise.allSettled([
         withRequestTimeout(analyticsApi.getYearlyTrend(debouncedRequestParams)),
         withRequestTimeout(analyticsApi.getHourlyTrend(debouncedRequestParams)),
         withRequestTimeout(analyticsApi.getWeeklyTrend(debouncedRequestParams)),
-        withRequestTimeout(analyticsApi.getTypesProportion({
-          ...debouncedRequestParams,
-          limit: 10
-        })),
-        withRequestTimeout(analyticsApi.getYearlyTrend({
-          ...debouncedRequestParams,
-          primary_type: ['HOMICIDE']
-        })),
-        withRequestTimeout(analyticsApi.getLocationTypes({
-          ...debouncedRequestParams,
-          limit: 10
-        })),
-        withRequestTimeout(analyticsApi.getDangerousBlocksTop({
-          ...debouncedRequestParams,
-          limit: 10
-        })),
-        withRequestTimeout(analyticsApi.getDistrictsComparison({
-          ...debouncedRequestParams,
-          limit: 10
-        })),
-        withRequestTimeout(analyticsApi.getArrestsRate(debouncedRequestParams)),
-        withRequestTimeout(analyticsApi.getYearlyTrend({
-          ...debouncedRequestParams,
-          domestic: [true]
-        })),
-        withRequestTimeout(analyticsApi.getTypesSeasonalCompare({
-          ...debouncedRequestParams,
-          limit: 8
-        }))
+        withRequestTimeout(
+          analyticsApi.getTypesProportion({
+            ...debouncedRequestParams,
+            limit: 10
+          })
+        ),
+        withRequestTimeout(
+          analyticsApi.getYearlyTrend({
+            ...debouncedRequestParams,
+            primary_type: ['HOMICIDE']
+          })
+        )
       ])
 
-      const failedResults = settledResults.filter((item) => item.status === 'rejected')
-      if (failedResults.length === settledResults.length) {
-        setError((failedResults[0] as PromiseRejectedResult).reason as NormalizedApiError)
-      } else {
-        setError(null)
-      }
-
-      const yearlyRes = settledResults[0]
+      const primaryFailed = primaryResults.filter((item) => item.status === 'rejected')
+      const yearlyRes = primaryResults[0]
       if (yearlyRes?.status === 'fulfilled') {
-        setYearlyResult(normalizeSeriesData(yearlyRes.value.data, 'year', 'count', t('common.unknownYear')))
+        setYearlyResult(
+          normalizeSeriesData(yearlyRes.value.data, 'year', 'count', t('common.unknownYear'))
+        )
       } else {
         setYearlyResult({ data: [], downgradedCount: 0 })
       }
 
-      const hourlyRes = settledResults[1]
+      const hourlyRes = primaryResults[1]
       if (hourlyRes?.status === 'fulfilled') {
-        setHourlyResult(normalizeSeriesData(hourlyRes.value.data, 'hour', 'count', t('common.unknownHour')))
+        setHourlyResult(
+          normalizeSeriesData(hourlyRes.value.data, 'hour', 'count', t('common.unknownHour'))
+        )
       } else {
         setHourlyResult({ data: [], downgradedCount: 0 })
       }
 
-      const weeklyRes = settledResults[2]
+      const weeklyRes = primaryResults[2]
       if (weeklyRes?.status === 'fulfilled') {
         setWeeklyResult(
-          normalizeSeriesData(weeklyRes.value.data, 'day_of_week', 'count', t('common.unknownWeekday'))
+          normalizeSeriesData(
+            weeklyRes.value.data,
+            'day_of_week',
+            'count',
+            t('common.unknownWeekday')
+          )
         )
       } else {
         setWeeklyResult({ data: [], downgradedCount: 0 })
       }
 
-      const typeTopRes = settledResults[3]
+      const typeTopRes = primaryResults[3]
       if (typeTopRes?.status === 'fulfilled') {
         setTypeTopResult(
-          normalizeSeriesData(typeTopRes.value.data, 'primary_type', 'count', t('common.unknownType'))
+          normalizeSeriesData(
+            typeTopRes.value.data,
+            'primary_type',
+            'count',
+            t('common.unknownType')
+          )
         )
       } else {
         setTypeTopResult({ data: [], downgradedCount: 0 })
       }
 
-      const homicideRes = settledResults[4]
+      const homicideRes = primaryResults[4]
       if (homicideRes?.status === 'fulfilled') {
         setHomicideResult(
           normalizeSeriesData(homicideRes.value.data, 'year', 'count', t('common.unknownYear'))
@@ -250,8 +261,56 @@ const RequirementsAnalysis: React.FC = () => {
       } else {
         setHomicideResult({ data: [], downgradedCount: 0 })
       }
+      setPrimaryLoading(false)
 
-      const locationRes = settledResults[5]
+      const seasonalResultPromise = withRequestTimeout(
+        analyticsApi.getTypesSeasonalCompare({
+          ...debouncedRequestParams,
+          limit: 8
+        }),
+        SEASONAL_COMPARE_REQUEST_TIMEOUT_MS
+      )
+        .then((value) => ({ status: 'fulfilled' as const, value }))
+        .catch((reason) => ({ status: 'rejected' as const, reason }))
+
+      const secondaryResults = await Promise.allSettled([
+        withRequestTimeout(
+          analyticsApi.getLocationTypes({
+            ...debouncedRequestParams,
+            limit: 10
+          })
+        ),
+        withRequestTimeout(
+          analyticsApi.getDangerousBlocksTop({
+            ...debouncedRequestParams,
+            limit: 10
+          })
+        ),
+        withRequestTimeout(
+          analyticsApi.getDistrictsComparison({
+            ...debouncedRequestParams,
+            limit: 10
+          })
+        ),
+        withRequestTimeout(analyticsApi.getArrestsRate(debouncedRequestParams)),
+        withRequestTimeout(
+          analyticsApi.getYearlyTrend({
+            ...debouncedRequestParams,
+            domestic: [true]
+          })
+        ),
+        withRequestTimeout(
+          analyticsApi.getCommunityTop10({
+            ...debouncedRequestParams,
+            limit: 10
+          })
+        ),
+        withRequestTimeout(analyticsApi.getCaseNumberQuality(debouncedRequestParams))
+      ])
+
+      const secondaryFailed = secondaryResults.filter((item) => item.status === 'rejected')
+
+      const locationRes = secondaryResults[0]
       if (locationRes?.status === 'fulfilled') {
         setLocationResult(
           normalizeSeriesData(
@@ -265,23 +324,28 @@ const RequirementsAnalysis: React.FC = () => {
         setLocationResult({ data: [], downgradedCount: 0 })
       }
 
-      const blockRes = settledResults[6]
+      const blockRes = secondaryResults[1]
       if (blockRes?.status === 'fulfilled') {
         setBlockResult(normalizeSeriesData(blockRes.value.data, 'block', 'count', '未知街区'))
       } else {
         setBlockResult({ data: [], downgradedCount: 0 })
       }
 
-      const districtRankRes = settledResults[7]
+      const districtRankRes = secondaryResults[2]
       if (districtRankRes?.status === 'fulfilled') {
         setDistrictRankResult(
-          normalizeSeriesData(districtRankRes.value.data, 'district', 'count', t('common.unknownDistrict'))
+          normalizeSeriesData(
+            districtRankRes.value.data,
+            'district',
+            'count',
+            t('common.unknownDistrict')
+          )
         )
       } else {
         setDistrictRankResult({ data: [], downgradedCount: 0 })
       }
 
-      const arrestRes = settledResults[8]
+      const arrestRes = secondaryResults[3]
       if (arrestRes?.status === 'fulfilled') {
         setArrestResult(
           normalizeSeriesData(
@@ -295,7 +359,7 @@ const RequirementsAnalysis: React.FC = () => {
         setArrestResult({ data: [], downgradedCount: 0 })
       }
 
-      const domesticYearlyRes = settledResults[9]
+      const domesticYearlyRes = secondaryResults[4]
       if (domesticYearlyRes?.status === 'fulfilled') {
         setDomesticYearlyResult(
           normalizeSeriesData(
@@ -309,44 +373,81 @@ const RequirementsAnalysis: React.FC = () => {
         setDomesticYearlyResult({ data: [], downgradedCount: 0 })
       }
 
-      const seasonalRes = settledResults[10]
-      if (seasonalRes?.status !== 'fulfilled') {
+      const communityTopRes = secondaryResults[5]
+      if (communityTopRes?.status === 'fulfilled') {
+        setCommunityTopResult(
+          normalizeSeriesData(communityTopRes.value.data, 'community_area', 'count', '未知社区')
+        )
+      } else {
+        setCommunityTopResult({ data: [], downgradedCount: 0 })
+      }
+
+      const caseQualityRes = secondaryResults[6]
+      if (caseQualityRes?.status === 'fulfilled') {
+        setCaseQualityResult(
+          normalizeSeriesData(caseQualityRes.value.data, 'status', 'count', '未知状态')
+        )
+      } else {
+        setCaseQualityResult({ data: [], downgradedCount: 0 })
+      }
+
+      setSecondaryLoading(false)
+
+      const seasonalRes = await seasonalResultPromise
+      if (seasonalRes.status !== 'fulfilled') {
         setSeasonSeries([])
-        return
-      }
-      const seasonRows = seasonalRes.value.data as GenericRow[]
-      const seasonTypeMap: Record<string, Map<string, number>> = {
-        winter: new Map<string, number>(),
-        summer: new Map<string, number>()
-      }
-      const allTypes = new Set<string>()
-      for (const row of seasonRows) {
-        const season = String(row.season ?? '')
-        const primaryType = String(row.primary_type ?? '')
-        if (!seasonTypeMap[season] || !primaryType) continue
-        const proportion = Math.round(toNumber(row.proportion) * 10000) / 100
-        seasonTypeMap[season]?.set(primaryType, proportion)
-        allTypes.add(primaryType)
-      }
-      const categories = Array.from(allTypes)
-      setSeasonSeries([
-        {
-          label: '冬季',
-          color: '#1677ff',
-          data: categories.map((primary_type) => ({
-            primary_type,
-            proportion: seasonTypeMap.winter.get(primary_type) ?? 0
-          }))
-        },
-        {
-          label: '夏季',
-          color: '#fa8c16',
-          data: categories.map((primary_type) => ({
-            primary_type,
-            proportion: seasonTypeMap.summer.get(primary_type) ?? 0
-          }))
+      } else {
+        const seasonRows = seasonalRes.value.data as GenericRow[]
+        const seasonTypeMap: Record<string, Map<string, number>> = {
+          winter: new Map<string, number>(),
+          summer: new Map<string, number>()
         }
-      ])
+        const allTypes = new Set<string>()
+        for (const row of seasonRows) {
+          const season = String(row.season ?? '')
+          const primaryType = String(row.primary_type ?? '')
+          if (!seasonTypeMap[season] || !primaryType) continue
+          const proportion = Math.round(toNumber(row.proportion) * 10000) / 100
+          seasonTypeMap[season]?.set(primaryType, proportion)
+          allTypes.add(primaryType)
+        }
+        const categories = Array.from(allTypes)
+        setSeasonSeries([
+          {
+            label: '冬季',
+            color: '#1677ff',
+            data: categories.map((primary_type) => ({
+              primary_type,
+              proportion: seasonTypeMap.winter.get(primary_type) ?? 0
+            }))
+          },
+          {
+            label: '夏季',
+            color: '#fa8c16',
+            data: categories.map((primary_type) => ({
+              primary_type,
+              proportion: seasonTypeMap.summer.get(primary_type) ?? 0
+            }))
+          }
+        ])
+      }
+
+      const allSecondaryFailed =
+        secondaryFailed.length === secondaryResults.length && seasonalRes.status === 'rejected'
+      if (primaryFailed.length === primaryResults.length && allSecondaryFailed) {
+        const firstRejected = [...primaryFailed, ...secondaryFailed][0] as
+          | PromiseRejectedResult
+          | undefined
+        const seasonalReason = seasonalRes.status === 'rejected' ? seasonalRes.reason : undefined
+        setError(
+          (firstRejected?.reason ?? seasonalReason ?? new Error('request_failed')) as
+            | NormalizedApiError
+            | Error as NormalizedApiError
+        )
+      } else {
+        setError(null)
+      }
+      setSeasonalLoading(false)
     } catch (requestError) {
       setError(requestError as NormalizedApiError)
       setYearlyResult({ data: [], downgradedCount: 0 })
@@ -359,9 +460,13 @@ const RequirementsAnalysis: React.FC = () => {
       setBlockResult({ data: [], downgradedCount: 0 })
       setArrestResult({ data: [], downgradedCount: 0 })
       setDomesticYearlyResult({ data: [], downgradedCount: 0 })
+      setCommunityTopResult({ data: [], downgradedCount: 0 })
+      setCaseQualityResult({ data: [], downgradedCount: 0 })
       setSeasonSeries([])
     } finally {
-      setLoading(false)
+      setPrimaryLoading(false)
+      setSecondaryLoading(false)
+      setSeasonalLoading(false)
     }
   }, [debouncedRequestParams])
 
@@ -397,13 +502,12 @@ const RequirementsAnalysis: React.FC = () => {
   )
 
   const arrestRateText = useMemo(() => {
-    const arrested =
-      arrestResult.data.find((item) => String(item.status) === '已逮捕')?.count ?? 0
+    const arrested = arrestResult.data.find((item) => String(item.status) === '已逮捕')?.count ?? 0
     const notArrested =
       arrestResult.data.find((item) => String(item.status) === '未逮捕')?.count ?? 0
     const total = toNumber(arrested) + toNumber(notArrested)
     if (total <= 0) return '暂无可计算的逮捕率'
-    return `当前筛选下总体逮捕率约 ${(toNumber(arrested) / total * 100).toFixed(2)}%`
+    return `当前筛选下总体逮捕率约 ${((toNumber(arrested) / total) * 100).toFixed(2)}%`
   }, [arrestResult.data])
 
   return (
@@ -422,7 +526,9 @@ const RequirementsAnalysis: React.FC = () => {
         '/analytics/location/types',
         '/analytics/blocks/top_dangerous',
         '/analytics/districts/comparison',
-        '/analytics/arrests/rate'
+        '/analytics/arrests/rate',
+        '/analytics/community/top10',
+        '/analytics/quality/case_number'
       ]}
     >
       <Row gutter={[16, 16]}>
@@ -433,7 +539,7 @@ const RequirementsAnalysis: React.FC = () => {
             description="验证总体是否长期下降，并识别疫情阶段异常低点。"
           >
             <DataStatePanel
-              loading={loading}
+              loading={primaryLoading}
               error={error}
               isEmpty={yearlyResult.data.length === 0}
               downgradedCount={yearlyResult.downgradedCount}
@@ -456,13 +562,18 @@ const RequirementsAnalysis: React.FC = () => {
             description={`当前高峰时段：${hourlyMost}；当前低谷时段：${hourlyLeast}`}
           >
             <DataStatePanel
-              loading={loading}
+              loading={primaryLoading}
               error={error}
               isEmpty={hourlyResult.data.length === 0}
               downgradedCount={hourlyResult.downgradedCount}
               onRetry={() => void fetchData()}
             >
-              <LineChart data={hourlyResult.data} xField="hour" yField="count" yFieldLabel="案件数量" />
+              <LineChart
+                data={hourlyResult.data}
+                xField="hour"
+                yField="count"
+                yFieldLabel="案件数量"
+              />
             </DataStatePanel>
           </InsightCard>
         </Col>
@@ -473,7 +584,7 @@ const RequirementsAnalysis: React.FC = () => {
             description={`当前最高发：${weeklyMost}；当前最低发：${weeklyLeast}`}
           >
             <DataStatePanel
-              loading={loading}
+              loading={primaryLoading}
               error={error}
               isEmpty={weeklyResult.data.length === 0}
               downgradedCount={weeklyResult.downgradedCount}
@@ -496,7 +607,7 @@ const RequirementsAnalysis: React.FC = () => {
             description="验证盗窃、殴打、刑事损毁等类型是否稳定位于高位。"
           >
             <DataStatePanel
-              loading={loading}
+              loading={primaryLoading}
               error={error}
               isEmpty={typeTopResult.data.length === 0}
               downgradedCount={typeTopResult.downgradedCount}
@@ -521,13 +632,18 @@ const RequirementsAnalysis: React.FC = () => {
             description="观察总体下降背景下，极端暴力案件是否存在逆势反弹。"
           >
             <DataStatePanel
-              loading={loading}
+              loading={primaryLoading}
               error={error}
               isEmpty={homicideResult.data.length === 0}
               downgradedCount={homicideResult.downgradedCount}
               onRetry={() => void fetchData()}
             >
-              <LineChart data={homicideResult.data} xField="year" yField="count" yFieldLabel="案件数量" />
+              <LineChart
+                data={homicideResult.data}
+                xField="year"
+                yField="count"
+                yFieldLabel="案件数量"
+              />
             </DataStatePanel>
           </InsightCard>
         </Col>
@@ -538,7 +654,7 @@ const RequirementsAnalysis: React.FC = () => {
             description="验证街道、住宅、公寓等地点类型是否长期高发。"
           >
             <DataStatePanel
-              loading={loading}
+              loading={secondaryLoading}
               error={error}
               isEmpty={locationResult.data.length === 0}
               downgradedCount={locationResult.downgradedCount}
@@ -563,7 +679,7 @@ const RequirementsAnalysis: React.FC = () => {
             description="补齐危险街区榜单，可直接定位交通枢纽与商业街区风险。"
           >
             <DataStatePanel
-              loading={loading}
+              loading={secondaryLoading}
               error={error}
               isEmpty={blockResult.data.length === 0}
               downgradedCount={blockResult.downgradedCount}
@@ -582,9 +698,37 @@ const RequirementsAnalysis: React.FC = () => {
           </InsightCard>
         </Col>
         <Col span={12}>
-          <InsightCard eyebrow="空间维度" title="行政区对比排名" description="定位案件总量最高的警务分区。">
+          <InsightCard
+            eyebrow="空间维度"
+            title="社区区域犯罪 TOP10"
+            description="案件数量最高的十个社区区域（Community Area）。"
+          >
             <DataStatePanel
-              loading={loading}
+              loading={secondaryLoading}
+              error={error}
+              isEmpty={communityTopResult.data.length === 0}
+              downgradedCount={communityTopResult.downgradedCount}
+              onRetry={() => void fetchData()}
+            >
+              <BarChart
+                data={communityTopResult.data}
+                xField="community_area"
+                yField="count"
+                yFieldLabel="案件数量"
+                layout="horizontal"
+                height={420}
+              />
+            </DataStatePanel>
+          </InsightCard>
+        </Col>
+        <Col span={12}>
+          <InsightCard
+            eyebrow="空间维度"
+            title="警区排名分析"
+            description="定位案件总量最高的警务分区。"
+          >
+            <DataStatePanel
+              loading={secondaryLoading}
               error={error}
               isEmpty={districtRankResult.data.length === 0}
               downgradedCount={districtRankResult.downgradedCount}
@@ -604,13 +748,18 @@ const RequirementsAnalysis: React.FC = () => {
         <Col span={12}>
           <InsightCard eyebrow="执法维度" title="整体逮捕率" description={arrestRateText}>
             <DataStatePanel
-              loading={loading}
+              loading={secondaryLoading}
               error={error}
               isEmpty={arrestResult.data.length === 0}
               downgradedCount={arrestResult.downgradedCount}
               onRetry={() => void fetchData()}
             >
-              <PieChart data={arrestResult.data} labelField="status" valueField="count" height={320} />
+              <PieChart
+                data={arrestResult.data}
+                labelField="status"
+                valueField="count"
+                height={320}
+              />
             </DataStatePanel>
           </InsightCard>
         </Col>
@@ -621,7 +770,7 @@ const RequirementsAnalysis: React.FC = () => {
             description="在总趋势下降背景下，观察疫情后阶段家暴案件的波动情况。"
           >
             <DataStatePanel
-              loading={loading}
+              loading={secondaryLoading}
               error={error}
               isEmpty={domesticYearlyResult.data.length === 0}
               downgradedCount={domesticYearlyResult.downgradedCount}
@@ -639,12 +788,34 @@ const RequirementsAnalysis: React.FC = () => {
         </Col>
         <Col span={12}>
           <InsightCard
+            eyebrow="数据质量"
+            title="案件编号完整性统计分析"
+            description="分析案件编号（Case Number）的有效性与缺失情况。"
+          >
+            <DataStatePanel
+              loading={secondaryLoading}
+              error={error}
+              isEmpty={caseQualityResult.data.length === 0}
+              downgradedCount={caseQualityResult.downgradedCount}
+              onRetry={() => void fetchData()}
+            >
+              <PieChart
+                data={caseQualityResult.data}
+                labelField="status"
+                valueField="count"
+                height={320}
+              />
+            </DataStatePanel>
+          </InsightCard>
+        </Col>
+        <Col span={12}>
+          <InsightCard
             eyebrow="补充优化"
             title="冬季与夏季类型对比"
             description="对“类型结构变化”补充季节对照，提升结论解释力。"
           >
             <DataStatePanel
-              loading={loading}
+              loading={seasonalLoading}
               error={error}
               isEmpty={seasonSeries.length === 0}
               onRetry={() => void fetchData()}

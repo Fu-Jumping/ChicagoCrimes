@@ -43,7 +43,9 @@ export const buildAnalyticsFilterParams = (
 ): Record<string, any> => {
   const omitDateRange = isRedundantFullYearRange(filters)
   const normalizedPrimaryType = filters.primaryType
-    ? normalizeCrimeTypeValues(Array.isArray(filters.primaryType) ? filters.primaryType : [filters.primaryType])
+    ? normalizeCrimeTypeValues(
+        Array.isArray(filters.primaryType) ? filters.primaryType : [filters.primaryType]
+      )
     : []
 
   return {

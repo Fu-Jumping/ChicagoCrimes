@@ -11,8 +11,9 @@ const api = {
   selectCsvFile: (): Promise<{ canceled: boolean; path: string | null; size: number | null }> =>
     ipcRenderer.invoke('select-csv-file'),
   getSetupStore: (): Promise<SetupStoreSnapshot> => ipcRenderer.invoke('setup-store-get'),
-  setSetupStore: (patch: Partial<{ setupCompleted: boolean; lastCsvPath: string }>): Promise<void> =>
-    ipcRenderer.invoke('setup-store-set', patch)
+  setSetupStore: (
+    patch: Partial<{ setupCompleted: boolean; lastCsvPath: string }>
+  ): Promise<void> => ipcRenderer.invoke('setup-store-set', patch)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -17,11 +17,12 @@ from app.cache import ResponseCache, build_etag
 from app.database import SessionLocal, is_database_configured
 from app.contracts import CONTRACT_VERSION, API_VERSION
 from app.schemas.crime import ErrorResponseModel
+from app.services import setup_service
 
 app = FastAPI(
     title="Chicago Crime Visualization API",
     description="Backend API for Chicago Crime Data Visualization Desktop App",
-    version="1.0.1"
+    version="1.0.4"
 )
 
 logger = logging.getLogger("chicago_crime_api")
@@ -333,11 +334,13 @@ WARM_UP_PATHS = [
     "/api/v1/analytics/types/proportion?limit=10",
     "/api/v1/analytics/types/proportion?limit=20",
     "/api/v1/analytics/types/proportion?limit=5",
+    "/api/v1/analytics/types/seasonal_compare?limit=8",
     "/api/v1/analytics/districts/comparison?limit=10",
     "/api/v1/analytics/arrests/rate",
     "/api/v1/analytics/domestic/proportion",
     "/api/v1/analytics/types/arrest_rate?limit=10",
     "/api/v1/analytics/types/arrest_rate?limit=5",
+    "/api/v1/analytics/location/types?limit=10",
     "/api/v1/analytics/location/types?limit=15",
     "/api/v1/analytics/blocks/top_dangerous?limit=10",
 ]
@@ -388,9 +391,18 @@ async def ensure_runtime_indexes():
     await asyncio.to_thread(_ensure)
 
 
+async def bootstrap_optional_location_fast_summaries():
+    result = await asyncio.to_thread(setup_service.ensure_optional_location_fast_summaries)
+    if result["built"]:
+        logger.info("optional_location_fast_summary_bootstrap_done tables=%s", result["built"])
+    else:
+        logger.info("optional_location_fast_summary_bootstrap_skip reason=%s", result["skipped"])
+
+
 @app.on_event("startup")
 async def on_startup():
     if is_database_configured():
+        asyncio.create_task(bootstrap_optional_location_fast_summaries())
         asyncio.create_task(warm_cache())
         asyncio.create_task(ensure_runtime_indexes())
 
