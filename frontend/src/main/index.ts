@@ -134,7 +134,9 @@ if (!gotSingleInstanceLock) {
           const fs = await import('fs/promises')
           const stat = await fs.stat(filePath)
           size = stat.size
-        } catch {}
+        } catch {
+          size = null
+        }
       }
       return { canceled, path: filePath, size }
     })

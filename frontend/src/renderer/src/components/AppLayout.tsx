@@ -57,6 +57,9 @@ interface SidebarFilterOptions {
   communityAreas: number[]
 }
 
+type NumericSelectValue = number | string | Array<number | string>
+type StringSelectValue = string | string[]
+
 const topNavItems = [
   { label: t('nav.overview'), path: '/' },
   { label: t('nav.trend'), path: '/trend' },
@@ -85,7 +88,10 @@ const warmupLabelMap: Record<string, string> = {
   done: '预加载完成'
 }
 
-const createNumericOptions = (values: number[], formatter: (value: number) => string) => [
+const createNumericOptions = (
+  values: number[],
+  formatter: (value: number) => string
+): Array<{ label: string; value: number | string }> => [
   { label: '全部', value: '__all__' },
   ...values.map((value) => ({
     label: formatter(value),
@@ -93,7 +99,10 @@ const createNumericOptions = (values: number[], formatter: (value: number) => st
   }))
 ]
 
-const createStringOptions = (values: string[], formatter: (value: string) => string) => [
+const createStringOptions = (
+  values: string[],
+  formatter: (value: string) => string
+): Array<{ label: string; value: string }> => [
   { label: '全部', value: '__all__' },
   ...values.map((value) => ({
     label: formatter(value),
@@ -128,17 +137,6 @@ const summarizeValue = (
   if (value === null || value === undefined || value === '') return '未设置'
   if (Array.isArray(value)) return value.length === 0 ? '未设置' : value.join(', ')
   return String(value)
-}
-
-export const dimensionLabelMap: Record<string, string> = {
-  year: '年份',
-  month: '月份',
-  primary_type: '案件类型',
-  district: '分区',
-  beat: '警区',
-  ward: '选区',
-  community_area: '社区',
-  domestic: '是否家暴'
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
@@ -180,22 +178,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
     space: false
   })
 
-  const sidebarFilterParams = useMemo(
-    () => buildAnalyticsFilterParams(filters),
-    [
-      filters.year,
-      filters.month,
-      filters.primaryType,
-      filters.startDate,
-      filters.endDate,
-      filters.district,
-      filters.beat,
-      filters.ward,
-      filters.communityArea,
-      filters.arrest,
-      filters.domestic
-    ]
-  )
+  const sidebarFilterParams = buildAnalyticsFilterParams(filters)
   const debouncedSidebarFilterParams = useDebouncedValue(sidebarFilterParams, 160)
 
   useEffect(() => {
@@ -389,7 +372,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
     const controlMap: Record<SidebarFilterFieldKey, React.ReactNode> = {
       year: <YearFilterSelect mode={mode} value={filters.year} onChange={setYear} />,
       month: (
-        <Select<any>
+        <Select
           mode={mode}
           value={
             mode === 'multiple'
@@ -403,7 +386,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
                 : (filters.month ?? '__all__')
           }
           options={MONTH_FILTER_OPTIONS}
-          onChange={(value) => {
+          onChange={(value: NumericSelectValue) => {
             if (mode === 'multiple') {
               const arr = Array.isArray(value) ? value : [value]
               const filtered = arr.filter((v) => v !== '__all__')
@@ -427,7 +410,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
       type: <TypeFilterSelect mode={mode} value={filters.primaryType} onChange={setPrimaryType} />,
       arrest: <ArrestFilterSelect mode={mode} value={filters.arrest} onChange={setArrest} />,
       domestic: (
-        <Select<any>
+        <Select
           mode={mode}
           value={
             mode === 'multiple'
@@ -445,7 +428,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
                   : String(filters.domestic)
           }
           options={DOMESTIC_FILTER_OPTIONS}
-          onChange={(value) => {
+          onChange={(value: StringSelectValue) => {
             if (mode === 'multiple') {
               const arr = Array.isArray(value) ? value : [value]
               const filtered = arr.filter((v) => v !== '__all__')
@@ -471,7 +454,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
         <DistrictFilterSelect mode={mode} value={filters.district} onChange={setDistrict} />
       ),
       beat: (
-        <Select<any>
+        <Select
           mode={mode}
           value={
             mode === 'multiple'
@@ -486,7 +469,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
           }
           options={beatSelectOptions}
           loading={filterOptions.loading}
-          onChange={(value) => {
+          onChange={(value: StringSelectValue) => {
             if (mode === 'multiple') {
               const arr = Array.isArray(value) ? value : [value]
               const filtered = arr.filter((v) => v !== '__all__')
@@ -501,7 +484,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
         />
       ),
       ward: (
-        <Select<any>
+        <Select
           mode={mode}
           value={
             mode === 'multiple'
@@ -516,7 +499,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
           }
           options={wardSelectOptions}
           loading={filterOptions.loading}
-          onChange={(value) => {
+          onChange={(value: NumericSelectValue) => {
             if (mode === 'multiple') {
               const arr = Array.isArray(value) ? value : [value]
               const filtered = arr.filter((v) => v !== '__all__')
@@ -531,7 +514,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
         />
       ),
       communityArea: (
-        <Select<any>
+        <Select
           mode={mode}
           value={
             mode === 'multiple'
@@ -546,7 +529,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onResetSetup }) => {
           }
           options={communityAreaSelectOptions}
           loading={filterOptions.loading}
-          onChange={(value) => {
+          onChange={(value: NumericSelectValue) => {
             if (mode === 'multiple') {
               const arr = Array.isArray(value) ? value : [value]
               const filtered = arr.filter((v) => v !== '__all__')

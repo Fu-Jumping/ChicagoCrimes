@@ -88,16 +88,16 @@ interface MemoryCacheEntry {
 }
 
 interface GeoAnalyticsParams {
-  [key: string]: boolean | number | string | undefined
-  year?: number
-  month?: number
-  primary_type?: string
-  district?: number
-  arrest?: boolean
-  beat?: string
-  ward?: number
-  community_area?: number
-  domestic?: boolean
+  [key: string]: boolean | number | string | boolean[] | number[] | string[] | undefined
+  year?: number | number[]
+  month?: number | number[]
+  primary_type?: string | string[]
+  district?: number | number[]
+  arrest?: boolean | boolean[]
+  beat?: string | string[]
+  ward?: number | number[]
+  community_area?: number | number[]
+  domestic?: boolean | boolean[]
 }
 
 type RequestHistoryListener = () => void

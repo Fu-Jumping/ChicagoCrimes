@@ -103,7 +103,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     }
   }, [current, runMysqlCheck])
 
-  const testConnection = async () => {
+  const testConnection = async (): Promise<void> => {
     const v = await form.validateFields()
     setBusy(true)
     setConnOk(null)
@@ -124,7 +124,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     }
   }
 
-  const createDb = async () => {
+  const createDb = async (): Promise<void> => {
     const v = await form.validateFields()
     setBusy(true)
     try {
@@ -138,7 +138,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     }
   }
 
-  const saveConfig = async () => {
+  const saveConfig = async (): Promise<void> => {
     const v = await form.validateFields()
     setBusy(true)
     try {
@@ -152,7 +152,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     }
   }
 
-  const initSchema = async () => {
+  const initSchema = async (): Promise<void> => {
     setBusy(true)
     try {
       await postInitSchema()
@@ -165,7 +165,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     }
   }
 
-  const pickCsv = async () => {
+  const pickCsv = async (): Promise<void> => {
     if (deskApi?.selectCsvFile) {
       const r = await deskApi.selectCsvFile()
       if (!r.canceled && r.path) {
@@ -182,7 +182,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     }
   }
 
-  const runImport = async () => {
+  const runImport = async (): Promise<void> => {
     if (!csvPath.trim()) {
       appendLog('请先选择 CSV 文件')
       return
@@ -289,7 +289,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     void runBuild()
   }, [current, buildStarted, importDone, runBuild])
 
-  const finish = async () => {
+  const finish = async (): Promise<void> => {
     try {
       const st: SetupStatusResponse = await fetchSetupStatus()
       if (!isSetupFullyReady(st)) {
@@ -305,7 +305,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
     onComplete()
   }
 
-  const exportLogs = () => {
+  const exportLogs = (): void => {
     const blob = new Blob([logs.join('\n')], { type: 'text/plain;charset=utf-8' })
     saveAs(blob, `setup-wizard-log-${Date.now()}.txt`)
   }
@@ -550,7 +550,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps): JSX.Eleme
             {buildLabel && <Text type="secondary">{buildLabel}</Text>}
             {busy && <Paragraph type="secondary">{t('setup.buildRunning')}</Paragraph>}
             {!busy && !buildError && buildPct !== 100 && (
-              <Paragraph type="secondary">点击"重试此步"开始构建</Paragraph>
+              <Paragraph type="secondary">{'点击“重试此步”开始构建'}</Paragraph>
             )}
             {buildError && (
               <Alert

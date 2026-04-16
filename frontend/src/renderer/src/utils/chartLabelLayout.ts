@@ -30,7 +30,10 @@ const clamp = (value: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, value))
 
 export const estimateLabelTextWidth = (text: string): number =>
-  Array.from(text).reduce((width, char) => width + (/[\u0000-\u00ff]/.test(char) ? 6.2 : 10.8), 4)
+  Array.from(text).reduce((width, char) => {
+    const charCode = char.charCodeAt(0)
+    return width + (charCode <= 0xff ? 6.2 : 10.8)
+  }, 4)
 
 export const distributeLabelYPositions = (
   desiredYPositions: number[],

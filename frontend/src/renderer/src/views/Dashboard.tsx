@@ -12,7 +12,6 @@ import { useGlobalFilters } from '../hooks/useGlobalFilters'
 import { useChartComparison } from '../hooks/useChartComparison'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { t } from '../i18n'
-import { dimensionLabelMap } from '../components/AppLayout'
 import type { ChartInteractionEvent } from '../types/chartEvents'
 import {
   normalizeSeriesData,
@@ -21,6 +20,7 @@ import {
 } from '../utils/chartData'
 import { translateCrimeType } from '../utils/crimeTypeMap'
 import { buildAnalyticsFilterParams, singleNumber, formatFilterValue } from '../utils/filterParams'
+import { dimensionLabelMap } from '../utils/dimensionLabels'
 
 interface ChartState {
   loading: boolean
@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
   const hasYearFilter = filters.year !== null
   const requestParams = useMemo(() => buildAnalyticsFilterParams(filters), [filters])
   const debouncedRequestParams = useDebouncedValue(requestParams, 160)
-  const debouncedYear = singleNumber(debouncedRequestParams.year as number | number[] | null)
+  const debouncedYear = singleNumber(debouncedRequestParams.year)
 
   const trendComparison = useChartComparison({
     fetchFn: (year) =>

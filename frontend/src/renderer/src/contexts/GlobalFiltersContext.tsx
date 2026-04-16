@@ -7,6 +7,8 @@ import {
   type GlobalFiltersContextValue
 } from './globalFiltersState'
 
+type FilterParamValue = GlobalFilters[keyof GlobalFilters] | undefined
+
 const parsePositiveInteger = (value: string | null): number | null => {
   const normalized = value?.trim()
   if (!normalized || !/^\d+$/.test(normalized)) {
@@ -355,7 +357,7 @@ export const GlobalFiltersProvider: React.FC<{ children: React.ReactNode }> = ({
     (nextFilters: Partial<GlobalFilters>) => {
       const nextParams = new URLSearchParams(searchParams)
 
-      const apply = (key: string, current: any, incoming: any): void => {
+      const apply = (key: string, current: FilterParamValue, incoming: FilterParamValue): void => {
         const value = incoming === undefined ? current : incoming
         nextParams.delete(key)
         if (value !== null && value !== undefined) {

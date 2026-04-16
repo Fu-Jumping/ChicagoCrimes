@@ -8,6 +8,8 @@ interface ArrestFilterSelectProps {
   mode?: 'multiple'
 }
 
+type ArrestSelectValue = string | string[]
+
 const arrestOptions = [
   ALL_FILTER_OPTION,
   { label: '已逮捕', value: 'true' },
@@ -30,7 +32,7 @@ const ArrestFilterSelect: React.FC<ArrestFilterSelectProps> = ({ value, onChange
             : ALL_FILTER_OPTION.value
           : String(value)
 
-  const handleChange = (nextValue: any): void => {
+  const handleChange = (nextValue: ArrestSelectValue): void => {
     if (mode === 'multiple') {
       const arr = Array.isArray(nextValue) ? nextValue : [nextValue]
       const filtered = arr.filter((v) => v !== ALL_FILTER_OPTION.value)

@@ -1154,6 +1154,11 @@ exports[`visual regression > renders the dashboard shell snapshot with analysis 
               >
                 空间地图
               </span>
+              <span
+                class="nav-item "
+              >
+                专项图表
+              </span>
               <button
                 aria-label="切换为浅色主题"
                 class="icon-btn"

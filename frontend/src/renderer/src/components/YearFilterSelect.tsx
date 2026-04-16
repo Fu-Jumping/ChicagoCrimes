@@ -8,6 +8,8 @@ interface YearFilterSelectProps {
   mode?: 'multiple'
 }
 
+type YearSelectValue = number | string | Array<number | string>
+
 const years = Array.from({ length: 2023 - 2001 + 1 }, (_, index) => 2001 + index)
 
 const YearFilterSelect: React.FC<YearFilterSelectProps> = ({ value, onChange, mode }) => {
@@ -23,7 +25,7 @@ const YearFilterSelect: React.FC<YearFilterSelectProps> = ({ value, onChange, mo
         : (value ?? ALL_FILTER_OPTION.value)
 
   return (
-    <Select<any>
+    <Select
       mode={mode}
       placeholder="选择年份"
       style={{ width: '100%' }}
@@ -37,7 +39,7 @@ const YearFilterSelect: React.FC<YearFilterSelectProps> = ({ value, onChange, mo
           label: String(year)
         }))
       ]}
-      onChange={(nextValue) => {
+      onChange={(nextValue: YearSelectValue) => {
         if (mode === 'multiple') {
           const arr = Array.isArray(nextValue) ? nextValue : [nextValue]
           const filtered = arr.filter((v) => v !== ALL_FILTER_OPTION.value)

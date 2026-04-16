@@ -86,7 +86,7 @@ async function waitForBackendReachable(
 
 function BackendDownScreen({ onRetry }: { onRetry: () => void }): JSX.Element {
   const [retrying, setRetrying] = useState(false)
-  const handleRetry = async () => {
+  const handleRetry = async (): Promise<void> => {
     setRetrying(true)
     await new Promise((r) => setTimeout(r, 800))
     setRetrying(false)
@@ -175,7 +175,6 @@ function SetupGate(): JSX.Element {
 
   useEffect(() => {
     let cancelled = false
-    setPhase('loading')
     ;(async () => {
       const reachable = await waitForBackendReachable(() => cancelled)
       if (cancelled) return
@@ -233,7 +232,12 @@ function SetupGate(): JSX.Element {
   if (phase === 'backend_down') {
     return (
       <ConfigProvider theme={providerTheme}>
-        <BackendDownScreen onRetry={() => setRetryKey((k) => k + 1)} />
+        <BackendDownScreen
+          onRetry={() => {
+            setPhase('loading')
+            setRetryKey((k) => k + 1)
+          }}
+        />
       </ConfigProvider>
     )
   }
