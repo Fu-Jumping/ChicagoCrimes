@@ -1596,7 +1596,7 @@ def get_night_hourly_peak(
     community_area: Optional[int] = None,
     domestic: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
-    night_hours = list(range(0, 6)) + list(range(18, 24))
+    night_hours = [22, 23, 0, 1, 2, 3]
     query = db.query(Crime.crime_hour.label("hour"), func.count(Crime.id).label("count"))
     query = query.filter(Crime.crime_hour.in_(night_hours))
     query = apply_filters(
@@ -1614,9 +1614,15 @@ def get_night_hourly_peak(
         community_area=community_area,
         domestic=domestic,
     )
-    query = query.group_by(Crime.crime_hour).order_by(desc("count"), asc(Crime.crime_hour))
+    query = query.group_by(Crime.crime_hour).order_by(asc(Crime.crime_hour))
     results = query.all()
-    data = [{"hour": int(row.hour), "count": int(row.count)} for row in results if row.hour is not None]
+
+    hour_counts = {int(row.hour): int(row.count) for row in results if row.hour is not None}
+    
+    data = []
+    for h in night_hours:
+        data.append({"hour": h, "count": hour_counts.get(h, 0)})
+        
     return add_stable_key(data, "hour")
 
 

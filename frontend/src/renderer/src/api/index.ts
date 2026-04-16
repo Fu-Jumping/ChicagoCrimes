@@ -577,6 +577,7 @@ export const analyticsApi = {
     requirementsWarmupPromise = Promise.allSettled([
       analyticsApi.getYearlyTrend(),
       analyticsApi.getHourlyTrend(),
+      analyticsApi.getNightlyPeak(),
       analyticsApi.getWeeklyTrend(),
       analyticsApi.getTypesProportion({ limit: 10 }),
       analyticsApi.getYearlyTrend({ primary_type: ['HOMICIDE'] }),

@@ -137,6 +137,10 @@ const RequirementsAnalysis: React.FC = () => {
     data: [],
     downgradedCount: 0
   })
+  const [nightlyPeakResult, setNightlyPeakResult] = useState<NormalizedChartResult>({
+    data: [],
+    downgradedCount: 0
+  })
   const [weeklyResult, setWeeklyResult] = useState<NormalizedChartResult>({
     data: [],
     downgradedCount: 0
@@ -191,6 +195,7 @@ const RequirementsAnalysis: React.FC = () => {
       const primaryResults = await Promise.allSettled([
         withRequestTimeout(analyticsApi.getYearlyTrend(debouncedRequestParams)),
         withRequestTimeout(analyticsApi.getHourlyTrend(debouncedRequestParams)),
+        withRequestTimeout(analyticsApi.getNightlyPeak(debouncedRequestParams)),
         withRequestTimeout(analyticsApi.getWeeklyTrend(debouncedRequestParams)),
         withRequestTimeout(
           analyticsApi.getTypesProportion({
@@ -206,8 +211,9 @@ const RequirementsAnalysis: React.FC = () => {
         )
       ])
 
-      const primaryFailed = primaryResults.filter((item) => item.status === 'rejected')
-      const yearlyRes = primaryResults[0]
+      const [yearlyRes, hourlyRes, nightlyPeakRes, weeklyRes, typeTopRes, homicideRes] =
+        primaryResults
+
       if (yearlyRes?.status === 'fulfilled') {
         setYearlyResult(
           normalizeSeriesData(yearlyRes.value.data, 'year', 'count', t('common.unknownYear'))
@@ -216,7 +222,6 @@ const RequirementsAnalysis: React.FC = () => {
         setYearlyResult({ data: [], downgradedCount: 0 })
       }
 
-      const hourlyRes = primaryResults[1]
       if (hourlyRes?.status === 'fulfilled') {
         setHourlyResult(
           normalizeSeriesData(hourlyRes.value.data, 'hour', 'count', t('common.unknownHour'))
@@ -225,7 +230,14 @@ const RequirementsAnalysis: React.FC = () => {
         setHourlyResult({ data: [], downgradedCount: 0 })
       }
 
-      const weeklyRes = primaryResults[2]
+      if (nightlyPeakRes?.status === 'fulfilled') {
+        setNightlyPeakResult(
+          normalizeSeriesData(nightlyPeakRes.value.data, 'hour', 'count', t('common.unknownHour'))
+        )
+      } else {
+        setNightlyPeakResult({ data: [], downgradedCount: 0 })
+      }
+
       if (weeklyRes?.status === 'fulfilled') {
         setWeeklyResult(
           normalizeSeriesData(
@@ -239,7 +251,6 @@ const RequirementsAnalysis: React.FC = () => {
         setWeeklyResult({ data: [], downgradedCount: 0 })
       }
 
-      const typeTopRes = primaryResults[3]
       if (typeTopRes?.status === 'fulfilled') {
         setTypeTopResult(
           normalizeSeriesData(
@@ -253,7 +264,6 @@ const RequirementsAnalysis: React.FC = () => {
         setTypeTopResult({ data: [], downgradedCount: 0 })
       }
 
-      const homicideRes = primaryResults[4]
       if (homicideRes?.status === 'fulfilled') {
         setHomicideResult(
           normalizeSeriesData(homicideRes.value.data, 'year', 'count', t('common.unknownYear'))
@@ -308,9 +318,16 @@ const RequirementsAnalysis: React.FC = () => {
         withRequestTimeout(analyticsApi.getCaseNumberQuality(debouncedRequestParams))
       ])
 
-      const secondaryFailed = secondaryResults.filter((item) => item.status === 'rejected')
+      const [
+        locationRes,
+        blockRes,
+        districtRankRes,
+        arrestRes,
+        domesticYearlyRes,
+        communityTopRes,
+        caseQualityRes
+      ] = secondaryResults
 
-      const locationRes = secondaryResults[0]
       if (locationRes?.status === 'fulfilled') {
         setLocationResult(
           normalizeSeriesData(
@@ -324,14 +341,12 @@ const RequirementsAnalysis: React.FC = () => {
         setLocationResult({ data: [], downgradedCount: 0 })
       }
 
-      const blockRes = secondaryResults[1]
       if (blockRes?.status === 'fulfilled') {
         setBlockResult(normalizeSeriesData(blockRes.value.data, 'block', 'count', '未知街区'))
       } else {
         setBlockResult({ data: [], downgradedCount: 0 })
       }
 
-      const districtRankRes = secondaryResults[2]
       if (districtRankRes?.status === 'fulfilled') {
         setDistrictRankResult(
           normalizeSeriesData(
@@ -345,7 +360,6 @@ const RequirementsAnalysis: React.FC = () => {
         setDistrictRankResult({ data: [], downgradedCount: 0 })
       }
 
-      const arrestRes = secondaryResults[3]
       if (arrestRes?.status === 'fulfilled') {
         setArrestResult(
           normalizeSeriesData(
@@ -359,7 +373,6 @@ const RequirementsAnalysis: React.FC = () => {
         setArrestResult({ data: [], downgradedCount: 0 })
       }
 
-      const domesticYearlyRes = secondaryResults[4]
       if (domesticYearlyRes?.status === 'fulfilled') {
         setDomesticYearlyResult(
           normalizeSeriesData(
@@ -373,7 +386,6 @@ const RequirementsAnalysis: React.FC = () => {
         setDomesticYearlyResult({ data: [], downgradedCount: 0 })
       }
 
-      const communityTopRes = secondaryResults[5]
       if (communityTopRes?.status === 'fulfilled') {
         setCommunityTopResult(
           normalizeSeriesData(communityTopRes.value.data, 'community_area', 'count', '未知社区')
@@ -382,7 +394,6 @@ const RequirementsAnalysis: React.FC = () => {
         setCommunityTopResult({ data: [], downgradedCount: 0 })
       }
 
-      const caseQualityRes = secondaryResults[6]
       if (caseQualityRes?.status === 'fulfilled') {
         setCaseQualityResult(
           normalizeSeriesData(caseQualityRes.value.data, 'status', 'count', '未知状态')
@@ -432,6 +443,9 @@ const RequirementsAnalysis: React.FC = () => {
         ])
       }
 
+      const primaryFailed = primaryResults.filter((item) => item.status === 'rejected')
+      const secondaryFailed = secondaryResults.filter((item) => item.status === 'rejected')
+
       const allSecondaryFailed =
         secondaryFailed.length === secondaryResults.length && seasonalRes.status === 'rejected'
       if (primaryFailed.length === primaryResults.length && allSecondaryFailed) {
@@ -452,6 +466,7 @@ const RequirementsAnalysis: React.FC = () => {
       setError(requestError as NormalizedApiError)
       setYearlyResult({ data: [], downgradedCount: 0 })
       setHourlyResult({ data: [], downgradedCount: 0 })
+      setNightlyPeakResult({ data: [], downgradedCount: 0 })
       setWeeklyResult({ data: [], downgradedCount: 0 })
       setDistrictRankResult({ data: [], downgradedCount: 0 })
       setTypeTopResult({ data: [], downgradedCount: 0 })
@@ -520,6 +535,7 @@ const RequirementsAnalysis: React.FC = () => {
       debugPathPrefixes={[
         '/analytics/trend/yearly',
         '/analytics/trend/hourly',
+        '/analytics/trend/nightly_peak',
         '/analytics/trend/weekly',
         '/analytics/types/seasonal_compare',
         '/analytics/types/proportion',
@@ -573,6 +589,29 @@ const RequirementsAnalysis: React.FC = () => {
                 xField="hour"
                 yField="count"
                 yFieldLabel="案件数量"
+              />
+            </DataStatePanel>
+          </InsightCard>
+        </Col>
+        <Col span={12}>
+          <InsightCard
+            eyebrow="时间维度"
+            title="夜间高发时段 (22:00-04:00)"
+            description="专门分析夜间治安情况，突出22:00后的犯罪规模。"
+          >
+            <DataStatePanel
+              loading={primaryLoading}
+              error={error}
+              isEmpty={nightlyPeakResult.data.length === 0}
+              downgradedCount={nightlyPeakResult.downgradedCount}
+              onRetry={() => void fetchData()}
+            >
+              <LineChart
+                data={nightlyPeakResult.data}
+                xField="hour"
+                yField="count"
+                yFieldLabel="案件数量"
+                labelTranslator={(v) => `${v}:00`}
               />
             </DataStatePanel>
           </InsightCard>
